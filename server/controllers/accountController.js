@@ -16,18 +16,18 @@ exports.createAccount = async (req, res) => {
     try {
         const accountExits = await account.findOne({ email })
         if (accountExits) return res.status(400).json({ message: "User already exist!" });
-        
+
         const newAccount = await account.create({
             username,
             password,
             email
         })
-        const token = generateToken(account._id);
+        const token = generateToken(newAccount._id);
 
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: true,
+            sameSite: 'strict',
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
         })
 
@@ -62,6 +62,8 @@ exports.loginAccount = async (req, res) => {
             sameSite: 'strict',
             maxAge: 30 * 24 * 60 * 60 * 1000
         });
+
+        console.log("token: ", req.cookies.token)
 
         res.json({
             _id: myaccount._id,
@@ -136,3 +138,14 @@ exports.logoutAccount = async (req, res) => {
 
     res.status(200).json({ message: 'Logged out successfully' });
 };
+
+// Sample get account data for authentication testing will soon be deleted
+exports.getMyInfo = async (req, res) => {
+    try {
+        const myId = req.user.id
+        const user = await account.findById(myId)
+        return res.status(200).send(user);
+    } catch (err) {
+        return res.status(500).json({ message: "Server Error", error: err.message })
+    }
+}

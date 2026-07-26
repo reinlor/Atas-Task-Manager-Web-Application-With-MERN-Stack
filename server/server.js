@@ -8,16 +8,19 @@ const app = express();
 const cors = require('cors')
 const PORT = process.env.PORT || 3000;
 const URI = process.env.ORIGIN_URI || 'http://localhost:5173'
+const cookieParser = require('cookie-parser')
 
+const { authenticateUser } = require('./authenticateUser')
 const accountRoute = require('./routes/accountRoute');
 const taskRoute = require('./routes/taskRoute')
 
 // Middleware
 app.use(cors({
-  origin: URI,
-  credentials: true
+    origin: URI,
+    credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser())
 app.use((req, res, next) => {
     console.log(`Path: ${req.path} Method: ${req.method}`);
     next();
@@ -26,6 +29,8 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api/account", accountRoute);
 app.use("/api/task", taskRoute);
+// Sample api for authentication testing only will be deleted later
+app.use("/test", authenticateUser, accountRoute)
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
