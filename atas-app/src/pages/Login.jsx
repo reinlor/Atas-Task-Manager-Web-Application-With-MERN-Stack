@@ -37,7 +37,7 @@ export default function Login() {
 
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
-            alert(error.response?.data?.message || 'An error occurred during login.'); s
+            alert(error.response?.data?.message || 'An error occurred during login.');
         }
     }
 
