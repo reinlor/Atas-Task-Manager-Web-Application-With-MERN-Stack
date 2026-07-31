@@ -1,6 +1,7 @@
 import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify'
 
 export default function GoogleLoginButton() {
     const navigate = useNavigate();
@@ -15,11 +16,11 @@ export default function GoogleLoginButton() {
                 { withCredentials: true }
             );
             
-            console.log('Successfully logged in!', response.data);
-            alert(`Welcome, ${response.data.username}!`);
+            toast(`Welcome, ${response.data.username}!`);
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
             console.error('Login Failed:', error.response?.data || error.message);
+            toast('Server Error')
         }
     };
 

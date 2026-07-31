@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from 'axios'
 import GoogleLoginButton from "../component/GoogleLoginButton";
+import { toast } from 'react-toastify';
 
 const styles = {
     card: "flex flex-col justify-center rounded-sm border-2 w-120 p-3",
@@ -33,11 +34,12 @@ export default function Login() {
                 { withCredentials: true }
             )
 
-            alert(`Welcome back, ${response.data.username}!`);
+            toast(`Welcome back, ${response.data.username}!`);
 
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
-            alert(error.response?.data?.message || 'An error occurred during login.');
+            console.error(error.response?.data?.message || 'An error occurred during login.');
+            toast('Server Error')
         }
     }
 
