@@ -11,7 +11,7 @@ export default function GoogleLoginButton() {
             const idToken = credentialResponse.credential;
             console.log
             const response = await axios.post(
-                'http://localhost:3000/api/account/auth/google',
+                `${import.meta.env.VITE_API_BASE_URL}/api/account/auth/google`,
                 { idToken },
                 { withCredentials: true }
             );

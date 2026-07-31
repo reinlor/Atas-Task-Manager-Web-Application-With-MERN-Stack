@@ -29,7 +29,7 @@ export default function Login() {
 
         try {
             const response = await axios.post(
-                "http://localhost:3000/api/account/login",
+                `${import.meta.env.VITE_API_BASE_URL}/api/account/login`,
                 { email, password },
                 { withCredentials: true }
             )
