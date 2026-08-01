@@ -1,13 +1,25 @@
 const account = require('../models/accountModel')
 const jwt = require('jsonwebtoken')
 const { OAuth2Client } = require('google-auth-library')
+const nodemailer = require('nodemailer')
+
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
 
-// Controller to gather user Data
+const generateConfirmationToken = (id) => {
+    return jwt.sign({ id, type: "email_confirmation" }, process.env.JWT_SECRET, { expiresIn: '15m' })
+}
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+})
 
 // Controller to create or register a user account
 exports.createAccount = async (req, res) => {
@@ -22,19 +34,26 @@ exports.createAccount = async (req, res) => {
             password,
             email
         })
-        const token = generateToken(newAccount._id);
 
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
-        })
+        const verificationToken = generateConfirmationToken(newAccount._id);
+        const verificationUrl = `${process.env.ORIGIN_URI}/verify-email?token=${verificationToken}`;
+
+        await transporter.sendMail({
+            from: `"Atas-App" <${process.env.EMAIL_USER}>`,
+            to: newAccount.email,
+            subject: 'Verify your email address',
+            html: `
+        <h3>Welcome to Atas App, ${newAccount.username}!</h3>
+        <p>Please click the link below to confirm your email address:</p>
+        <a href="${verificationUrl}">${verificationUrl}</a>
+        <p>This link will expire in 15 minutes.</p>`,
+        });
 
         return res.status(201).json({
             _id: newAccount._id,
             username: newAccount.username,
-            email: newAccount.email
+            email: newAccount.email,
+            message: "Registration Succesful! please check your email to verify your account"
         })
     } catch (error) {
         return res.status(500).json({
@@ -53,6 +72,8 @@ exports.loginAccount = async (req, res) => {
         if (!myaccount) return res.status(401).json({ message: "Invalid email or password " });
         const checkPassword = await myaccount.matchPassword(password);
         if (!checkPassword) return res.status(401).json({ message: "Invalid email or password " });
+        if (!myaccount.isVerified)
+            return res.status(403).json({ message: "Email is not verified Yet" })
 
         const token = generateToken(myaccount._id);
 
@@ -102,7 +123,8 @@ exports.googleLogin = async (req, res) => {
             myGoogleAcc = await account.create({
                 username: name,
                 email: email,
-                password: randomPassword
+                password: randomPassword,
+                isVerified: true
             });
         }
 
@@ -138,6 +160,41 @@ exports.logoutAccount = async (req, res) => {
 
     res.status(200).json({ message: 'Logged out successfully' });
 };
+
+// Controller to verify user account after registration
+exports.verifyAccount = async (req, res) => {
+    try {
+        const { token } = req.body;
+        jwt.verify(token, process.env.JWT_SECRET)
+
+        const { id } = jwt.decode(token, process.env.JWT_SECRET)
+        const user = await account.findById(id)
+
+        if (user.isVerified)
+            return res.status(401).json({
+                message: "User is Already Verified"
+            })
+
+        user.isVerified = true
+
+        const updatedUser = await user.save();
+
+        return res.status(200).json({
+            message: "Account Verified Successfully",
+            payload: user
+        })
+    } catch (error) {
+        if (error.name === 'TokenExpiredError')
+            return res.status(500).json({
+                error: error.message,
+                message: 'Token Expired'
+            })
+        return res.status(500).json({
+            error: error.message,
+            message: 'Server Error'
+        })
+    }
+}
 
 // Sample get account data for authentication testing will soon be deleted
 exports.getMyInfo = async (req, res) => {
