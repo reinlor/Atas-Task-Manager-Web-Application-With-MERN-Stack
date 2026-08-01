@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from 'axios'
-import GoogleLoginButton from "../component/GoogleLoginButton";
+import GoogleLoginButton from "../../component/GoogleLoginButton";
 import { toast } from 'react-toastify';
+
+import ForgotForm from "./ForgotForm";
+import RegisterForm from "./RegisterForm";
 
 const styles = {
     card: "flex flex-col justify-center rounded-sm border-2 w-120 p-3",
@@ -14,9 +17,10 @@ export default function Login() {
     const [activeForm, setActiveForm] = useState("login");
     const [formData, setFormData] = useState({
         email: '',
-        password: ''
+        password: '',
+        username: ''
     })
-    const { email, password } = formData;
+    const { email, password, username } = formData;
 
     // Helpers
     const navigate = useNavigate('/');
@@ -43,8 +47,29 @@ export default function Login() {
         }
     }
 
-    const handleRegister = () => {
-        // Wala pang function (Do not Modify)
+    const handleRegister = async (e) => {
+        e.preventDefault();
+
+        try {
+
+            const response = await toast.promise(axios.post(
+                `${import.meta.env.VITE_API_BASE_URL}/api/account/create`,
+                { username, email, password },
+                { withCredentials: true }
+            ), {
+                pending: 'Registering your account...',
+                success: 'Account Registered successfully! 👌',
+                error: {
+                    render({ data }) {
+                        return data.response?.data?.message || 'Registration failed. Please try again.';
+                    }
+                }
+            });
+
+            if (response.status === 201) navigate('/dashboard');
+        } catch (error) {
+            console.error(error.response?.data?.message || 'An error occurred during login.');
+        }
     }
 
     const handleFormChange = () => {
@@ -59,6 +84,9 @@ export default function Login() {
             case "register":
                 return <RegisterForm
                     changeForm={switchForm}
+                    formData={formData}
+                    onChange={onChange}
+                    handleRegister={handleRegister}
                 />
             case "forgot":
                 return <ForgotForm
@@ -152,97 +180,6 @@ function LoginForm({ handleLogin, changeForm, formData, onChange }) {
                             onClick={() => changeForm('register')}
                             className="text-green-500 cursor-pointer">Register</button>
                     </p>
-                </fieldset>
-            </form>
-        </article>
-    )
-}
-
-function RegisterForm({ changeForm }) {
-    const [showPass, setShowPass] = useState(false);
-
-    return (
-        <article className={styles.card}>
-            <h1 className="text-center">Register</h1>
-
-            <form>
-                <fieldset>
-                    <legend className="text-center pb-3 text-xs">Enter the credentials your credentials to register</legend>
-
-                    {/* Username */}
-                    <div>
-                        <label htmlFor="username">Username</label>
-                        <input
-                            type="input"
-                            placeholder="username"
-                            className={styles.input} />
-                    </div>
-
-                    {/* Password */}
-                    <div>
-                        <div className="flex justify-between">
-                            <label htmlFor="password">Password</label>
-                            <button
-                                type="button" onClick={() => setShowPass(!showPass)}
-                                className="underline cursor-pointer">
-                                {showPass ? "Hide" : "Show"}
-                            </button>
-                        </div>
-                        <input
-                            type={showPass ? "text" : "password"}
-                            placeholder="password"
-                            className={styles.input} />
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                        <label htmlFor="email">Email</label>
-                        <input
-                            type="email"
-                            placeholder="sample@email.com"
-                            id="email"
-                            className={styles.input} />
-                    </div>
-
-                    {/* Go Back to Login Card */}
-                    <button
-                        type="button"
-                        onClick={() => changeForm('login')}
-                        className="underline text-gray-600 cursor-pointer pb-4 text-sm">Login Page</button>
-
-                    {/* Register Button */}
-                    <button
-                        type="submit"
-                        className={`${styles.button} bg-green-400`}>Register</button>
-                </fieldset>
-            </form>
-        </article>
-    )
-}
-
-function ForgotForm({ changeForm }) {
-    return (
-        <article className={styles.card}>
-            <h1>Password Reset</h1>
-            <form>
-                <fieldset>
-                    <legend>Reset password will be sent on your registered email</legend>
-
-                    <div className="flex flex-col">
-                        <label>Email</label>
-                        <input
-                            type="email"
-                            className={styles.input}
-                            placeholder="email@sample.com" />
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => changeForm('login')}
-                        className="underline text-gray-600 cursor-pointer pb-4 text-sm">Login Page</button>
-
-                    <button
-                        type="submit"
-                        className={`${styles.button} bg-green-400`}>Reset Password</button>
                 </fieldset>
             </form>
         </article>

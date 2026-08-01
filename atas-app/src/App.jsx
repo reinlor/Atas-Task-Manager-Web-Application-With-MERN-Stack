@@ -3,7 +3,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 
 // Page(s) Imports
-import Login from './pages/Login';
+import Login from './pages/login/Login';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Timetable from './pages/Timetable';
