@@ -21,6 +21,23 @@ const transporter = nodemailer.createTransport({
     }
 })
 
+async function generateConfirmationLink(user) {
+    const {_id, email, username} = user
+    const verificationToken = generateConfirmationToken(_id);
+    const verificationUrl = `${process.env.ORIGIN_URI}/verify-email?token=${verificationToken}`;
+
+    await transporter.sendMail({
+        from: `"Atas-App" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Verify your email address',
+        html: `
+        <h3>Welcome to Atas App, ${username}!</h3>
+        <p>Please click the link below to confirm your email address:</p>
+        <a href="${verificationUrl}">${verificationUrl}</a>
+        <p>This link will expire in 15 minutes.</p>`,
+    });
+}
+
 // Controller to create or register a user account
 exports.createAccount = async (req, res) => {
     const { username, password, email } = req.body;
@@ -35,19 +52,7 @@ exports.createAccount = async (req, res) => {
             email
         })
 
-        const verificationToken = generateConfirmationToken(newAccount._id);
-        const verificationUrl = `${process.env.ORIGIN_URI}/verify-email?token=${verificationToken}`;
-
-        await transporter.sendMail({
-            from: `"Atas-App" <${process.env.EMAIL_USER}>`,
-            to: newAccount.email,
-            subject: 'Verify your email address',
-            html: `
-        <h3>Welcome to Atas App, ${newAccount.username}!</h3>
-        <p>Please click the link below to confirm your email address:</p>
-        <a href="${verificationUrl}">${verificationUrl}</a>
-        <p>This link will expire in 15 minutes.</p>`,
-        });
+        generateConfirmationLink(newAccount)
 
         return res.status(201).json({
             _id: newAccount._id,
@@ -72,8 +77,10 @@ exports.loginAccount = async (req, res) => {
         if (!myaccount) return res.status(401).json({ message: "Invalid email or password " });
         const checkPassword = await myaccount.matchPassword(password);
         if (!checkPassword) return res.status(401).json({ message: "Invalid email or password " });
-        if (!myaccount.isVerified)
-            return res.status(403).json({ message: "Email is not verified Yet" })
+        if (!myaccount.isVerified){
+            generateConfirmationLink(myaccount)
+            return res.status(403).json({ message: "Email is not verified Yet, Confirmation link sent!" })
+        }
 
         const token = generateToken(myaccount._id);
 

@@ -72,8 +72,6 @@ export default function Login() {
                     }
                 }
             });
-
-            if (response.status === 201) navigate('/dashboard');
         } catch (error) {
             console.error(error.response?.data?.message || 'An error occurred during login.');
         } finally {
