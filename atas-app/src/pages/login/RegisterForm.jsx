@@ -19,18 +19,18 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                 <fieldset>
                     <legend className="text-center pb-3 text-xs">Enter the credentials your credentials to register</legend>
 
-                    {/* Username */}
+                    {/* Email */}
                     <div>
-                        <label htmlFor="username">Username</label>
+                        <label htmlFor="email">Email</label>
                         <input
-                            type="input"
-                            placeholder="username"
-                            name="username"
+                            type="email"
+                            placeholder="sample@email.com"
+                            id="email"
+                            name="email"
                             className={styles.input}
                             onChange={onChange}
-                            value={username} />
+                            value={email} />
                     </div>
-
                     {/* Password */}
                     <div>
                         <div className="flex justify-between">
@@ -50,18 +50,16 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                             name="password"
                         />
                     </div>
-
-                    {/* Email */}
+                    {/* Username */}
                     <div>
-                        <label htmlFor="email">Email</label>
+                        <label htmlFor="username">Username</label>
                         <input
-                            type="email"
-                            placeholder="sample@email.com"
-                            id="email"
-                            name="email"
+                            type="input"
+                            placeholder="username"
+                            name="username"
                             className={styles.input}
                             onChange={onChange}
-                            value={email} />
+                            value={username} />
                     </div>
 
                     {/* Go Back to Login Card */}

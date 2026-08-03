@@ -186,7 +186,9 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                         Don't have an account? &nbsp;
                         <button
                             type="button"
-                            onClick={() => changeForm('register')}
+                            onClick={() => {
+                                changeForm('register')
+                            }}
                             className="text-green-500 cursor-pointer">Register</button>
                     </p>
                 </fieldset>
