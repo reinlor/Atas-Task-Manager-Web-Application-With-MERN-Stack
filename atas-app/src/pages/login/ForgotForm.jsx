@@ -4,7 +4,9 @@ const styles = {
     input: "border-3 rounded-sm p-1 w-full"
 };
 
-export default function ForgotForm({ changeForm }) {
+import Button from "../../component/Button";
+
+export default function ForgotForm({ changeForm, buttonState }) {
     return (
         <article className={styles.card}>
             <h1>Password Reset</h1>
@@ -24,9 +26,10 @@ export default function ForgotForm({ changeForm }) {
                         onClick={() => changeForm('login')}
                         className="underline text-gray-600 cursor-pointer pb-4 text-sm">Login Page</button>
 
-                    <button
-                        type="submit"
-                        className={`${styles.button} bg-green-400`}>Reset Password</button>
+                    <Button
+                        isLoading={buttonState}
+                        cstyle={'w-full'}
+                    >Confirm</Button>
                 </fieldset>
             </form>
         </article>

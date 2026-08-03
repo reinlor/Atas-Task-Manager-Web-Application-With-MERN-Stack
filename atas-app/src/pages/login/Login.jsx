@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from 'axios'
-import GoogleLoginButton from "../../component/GoogleLoginButton";
 import { toast } from 'react-toastify';
+
+import GoogleLoginButton from "../../component/GoogleLoginButton";
+import Button from "../../component/Button";
 
 import ForgotForm from "./ForgotForm";
 import RegisterForm from "./RegisterForm";
@@ -21,6 +23,8 @@ export default function Login() {
         username: ''
     })
     const { email, password, username } = formData;
+    const [isButtonLoading, setIsButtonLoading] = useState(false)
+
 
     // Helpers
     const navigate = useNavigate('/');
@@ -32,6 +36,7 @@ export default function Login() {
         e.preventDefault();
 
         try {
+            setIsButtonLoading (true)
             const response = await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/login`,
                 { email, password },
@@ -43,7 +48,9 @@ export default function Login() {
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
             console.error(error.response?.data?.message || 'An error occurred during login.');
-            toast('Server Error')
+            toast(error.response?.data?.message)
+        } finally {
+            setIsButtonLoading (false)
         }
     }
 
@@ -51,7 +58,7 @@ export default function Login() {
         e.preventDefault();
 
         try {
-
+            setIsButtonLoading(true)
             const response = await toast.promise(axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/create`,
                 { username, email, password },
@@ -69,6 +76,8 @@ export default function Login() {
             if (response.status === 201) navigate('/dashboard');
         } catch (error) {
             console.error(error.response?.data?.message || 'An error occurred during login.');
+        } finally {
+            setIsButtonLoading(false)
         }
     }
 
@@ -80,6 +89,7 @@ export default function Login() {
                     changeForm={switchForm}
                     formData={formData}
                     onChange={onChange}
+                    buttonState={isButtonLoading}
                 />
             case "register":
                 return <RegisterForm
@@ -87,6 +97,7 @@ export default function Login() {
                     formData={formData}
                     onChange={onChange}
                     handleRegister={handleRegister}
+                    buttonState={isButtonLoading}
                 />
             case "forgot":
                 return <ForgotForm
@@ -113,9 +124,10 @@ export default function Login() {
     )
 }
 
-function LoginForm({ handleLogin, changeForm, formData, onChange }) {
+function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState }) {
     const [showPass, setShowPass] = useState(false);
     const { email, password } = formData;
+    const [isLoading, setIsLoading] = useState(false)
 
     return (
         <article className={styles.card}>
@@ -165,12 +177,11 @@ function LoginForm({ handleLogin, changeForm, formData, onChange }) {
                     </div>
 
                     {/* Login Button */}
-                    <button
-                        type="submit" onClick={handleLogin}
-                        className={`${styles.button} bg-green-400`}>Log In</button>
-                    <button
-                        type="submit" onClick={handleLogin}
-                        className={`${styles.button} bg-gray-400`}>Guest</button>
+                    <Button
+                        onClick={handleLogin}
+                        isLoading={buttonState} 
+                        cstyle={'w-full'}
+                    >Log In</Button>
 
                     {/* Register Button */}
                     <p className="text-center">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Button from "../../component/Button";
 
 const styles = {
     card: "flex flex-col justify-center rounded-sm border-2 w-120 p-3",
@@ -6,9 +7,9 @@ const styles = {
     input: "border-3 rounded-sm p-1 w-full"
 };
 
-export default function RegisterForm({ changeForm, onChange, formData, handleRegister }) {
+export default function RegisterForm({ changeForm, onChange, formData, handleRegister, buttonState }) {
     const [showPass, setShowPass] = useState(false);
-    const {email, password, username} = formData
+    const { email, password, username } = formData
 
     return (
         <article className={styles.card}>
@@ -25,9 +26,9 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                             type="input"
                             placeholder="username"
                             name="username"
-                            className={styles.input} 
+                            className={styles.input}
                             onChange={onChange}
-                            value={username}/>
+                            value={username} />
                     </div>
 
                     {/* Password */}
@@ -43,11 +44,11 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                         <input
                             type={showPass ? "text" : "password"}
                             placeholder="password"
-                            className={styles.input} 
+                            className={styles.input}
                             onChange={onChange}
                             value={password}
                             name="password"
-                            />
+                        />
                     </div>
 
                     {/* Email */}
@@ -58,9 +59,9 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                             placeholder="sample@email.com"
                             id="email"
                             name="email"
-                            className={styles.input} 
+                            className={styles.input}
                             onChange={onChange}
-                            value={email}/>
+                            value={email} />
                     </div>
 
                     {/* Go Back to Login Card */}
@@ -70,10 +71,11 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                         className="underline text-gray-600 cursor-pointer pb-4 text-sm">Login Page</button>
 
                     {/* Register Button */}
-                    <button
-                        type="submit"
-                        className={`${styles.button} bg-green-400`}
-                        onClick={handleRegister}>Register</button>
+                    <Button
+                        onClick={handleRegister}
+                        isLoading={buttonState}
+                        cstyle={'w-full'}
+                    >Register</Button>
                 </fieldset>
             </form>
         </article>
