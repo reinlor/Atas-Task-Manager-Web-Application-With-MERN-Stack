@@ -9,33 +9,43 @@ const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
 
-const generateConfirmationToken = (id) => {
-    return jwt.sign({ id, type: "email_confirmation" }, process.env.JWT_SECRET, { expiresIn: '15m' })
+const generateConfirmationToken = (id, secret = process.env.JWT_SECRET) => {
+    return jwt.sign({ id, type: "email_confirmation" }, secret, { expiresIn: '15m' })
 }
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
+    pool: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     }
 })
 
-async function generateConfirmationLink(user) {
-    const {_id, email, username} = user
-    const verificationToken = generateConfirmationToken(_id);
-    const verificationUrl = `${process.env.ORIGIN_URI}/verify-email?token=${verificationToken}`;
+async function generateConfirmationLink(user, isChangePass = false) {
+    const { _id, email, username } = user
+    const verificationToken = isChangePass
+        ? generateConfirmationToken(_id, process.env.JWT_FORGOT_PASS_SECRET)
+        : generateConfirmationToken(_id, process.env.JWT_VERIFICATION_SECRET)
 
+    const finalUrl = isChangePass
+        ? `${process.env.ORIGIN_URI}/forgot-pass?token=${verificationToken}`
+        : `${process.env.ORIGIN_URI}/verify-email?token=${verificationToken}`;
+
+    // TODO: Remove this log before production
+    console.log("Sending email...")
     await transporter.sendMail({
         from: `"Atas-App" <${process.env.EMAIL_USER}>`,
         to: email,
-        subject: 'Verify your email address',
+        subject: isChangePass ? "Password Change Request" : "Verify your email address",
         html: `
-        <h3>Welcome to Atas App, ${username}!</h3>
-        <p>Please click the link below to confirm your email address:</p>
-        <a href="${verificationUrl}">${verificationUrl}</a>
+        <h3>${isChangePass ? "Password Reset Request" : `Welcome to Atas App, ${username}!`}</h3>
+        <p>${isChangePass ? "Please click the link below to reset your password:" : "Please click the link below to confirm your email address:"}</p>
+        <a href="${finalUrl}">${finalUrl}</a>
         <p>This link will expire in 15 minutes.</p>`,
     });
+    // TODO: Remove this log before production
+    console.log("Free from email service")
 }
 
 // Controller to create or register a user account
@@ -52,7 +62,9 @@ exports.createAccount = async (req, res) => {
             email
         })
 
-        generateConfirmationLink(newAccount)
+        generateConfirmationLink(newAccount).catch(err =>
+            console.error("Background email error (Sign Up):", err)
+        );
 
         return res.status(201).json({
             _id: newAccount._id,
@@ -77,9 +89,14 @@ exports.loginAccount = async (req, res) => {
         if (!myaccount) return res.status(401).json({ message: "Invalid email or password " });
         const checkPassword = await myaccount.matchPassword(password);
         if (!checkPassword) return res.status(401).json({ message: "Invalid email or password " });
-        if (!myaccount.isVerified){
-            generateConfirmationLink(myaccount)
-            return res.status(403).json({ message: "Email is not verified Yet, Confirmation link sent!" })
+        if (!myaccount.isVerified) {
+            generateConfirmationLink(myaccount).catch(err =>
+                console.error("Background email error (Login):", err)
+            );
+
+            return res.status(403).json({
+                message: "Email is not verified yet. A new confirmation link has been sent to your email!"
+            });
         }
 
         const token = generateToken(myaccount._id);
@@ -172,9 +189,9 @@ exports.logoutAccount = async (req, res) => {
 exports.verifyAccount = async (req, res) => {
     try {
         const { token } = req.body;
-        jwt.verify(token, process.env.JWT_SECRET)
+        jwt.verify(token, process.env.JWT_VERIFICATION_SECRET)
 
-        const { id } = jwt.decode(token, process.env.JWT_SECRET)
+        const { id } = jwt.decode(token, process.env.JWT_VERIFICATION_SECRET)
         const user = await account.findById(id)
 
         if (user.isVerified)
@@ -203,7 +220,57 @@ exports.verifyAccount = async (req, res) => {
     }
 }
 
-// Sample get account data for authentication testing will soon be deleted
+exports.forgotPassUrl = async (req, res) => {
+    try {
+        const { email } = req.body
+
+        const myaccount = await account.findOne({ email })
+        // instead of displaying an error message for hackers to scan, it is best to leave it as is 😏
+        if (myaccount) {
+            generateConfirmationLink(myaccount, true).catch(err =>
+                console.error("Background email error (Sign Up):", err)
+            );
+        }
+
+        return res.status(200).json({ message: "Change password url sent on email" })
+
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message,
+            message: 'Server Error'
+        })
+    }
+}
+
+exports.forgotPass = async (req, res) => {
+    try {
+        const { token, newPassword, confirmPassword } = req.body
+        jwt.verify(token, process.env.JWT_FORGOT_PASS_SECRET)
+        const { id } = jwt.decode(token, process.env.JWT_FORGOT_PASS_SECRET)
+
+        // Might as well double check password again on the server muehuehueeae
+        if (newPassword !== confirmPassword)
+            return res.status(400).json({ message: 'Password does not match' })
+
+        const user = await account.findById(id)
+        user.password = confirmPassword
+        await user.save()
+
+        return res.status(200).json({ message: "Password succesfully changed!" })
+    } catch (error) {
+        if (error.name === 'TokenExpiredError')
+            return res.status(500).json({
+                error: error.message,
+                message: 'Token Expired'
+            })
+        return res.status(500).json({
+            error: error.message,
+            message: 'Server Error'
+        })
+    }
+}
+
+// TODO: delete this before production. This is a sample controller to get account data for authentication testing will soon be deleted
 exports.getMyInfo = async (req, res) => {
     try {
         const myId = req.user.id

@@ -36,7 +36,7 @@ export default function Login() {
         e.preventDefault();
 
         try {
-            setIsButtonLoading (true)
+            setIsButtonLoading(true)
             const response = await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/login`,
                 { email, password },
@@ -50,7 +50,7 @@ export default function Login() {
             console.error(error.response?.data?.message || 'An error occurred during login.');
             toast(error.response?.data?.message)
         } finally {
-            setIsButtonLoading (false)
+            setIsButtonLoading(false)
         }
     }
 
@@ -79,6 +79,20 @@ export default function Login() {
         }
     }
 
+    const handleForgotPassword = async (e) => {
+        try {
+            console.log("clicked")
+            setIsButtonLoading(true)
+            const response = await axios.post(
+                `${import.meta.env.VITE_API_BASE_URL}/api/account/forgotPass`, { email })
+            toast(response?.data?.message)
+        } catch (error) {
+            toast.error(error?.response?.data?.message)
+        } finally {
+            setIsButtonLoading(false)
+        }
+    }
+
     const handleFormChange = () => {
         switch (activeForm) {
             case "login":
@@ -100,16 +114,24 @@ export default function Login() {
             case "forgot":
                 return <ForgotForm
                     changeForm={switchForm}
+                    formData={formData}
+                    onChange={onChange}
+                    handleForgotPassword={handleForgotPassword}
+                    buttonState={isButtonLoading}
                 />
             default:
                 return <LoginForm
                     handleLogin={handleLogin}
                     changeForm={switchForm}
+                    formData={formData}
+                    onChange={onChange}
+                    buttonState={isButtonLoading}
                 />
         }
     }
 
     const switchForm = (nextForm) => {
+        setFormData(prev => ({ ...prev, password: '' }))
         setActiveForm(nextForm);
     }
 
@@ -177,7 +199,7 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                     {/* Login Button */}
                     <Button
                         onClick={handleLogin}
-                        isLoading={buttonState} 
+                        isLoading={buttonState}
                         cstyle={'w-full'}
                     >Log In</Button>
 

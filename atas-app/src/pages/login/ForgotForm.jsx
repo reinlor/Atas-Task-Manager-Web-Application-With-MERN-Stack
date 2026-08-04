@@ -6,7 +6,24 @@ const styles = {
 
 import Button from "../../component/Button";
 
-export default function ForgotForm({ changeForm, buttonState }) {
+export default function ForgotForm({ changeForm, buttonState, handleForgotPassword, onChange, formData }) {
+    const { email } = formData
+    const handlePasswordChange = async () => {
+        try {
+            setButtonLoading(true)
+            const response = await axios(
+                `${import.meta.env.VITE_API_BASE_URL}/api/new-pass`, {
+                token: token,
+                newPassword: newPass,
+                confirmPassword: confirmPasss
+            })
+        } catch (error) {
+            setMessage(error?.response?.data?.message)
+        } finally {
+            setButtonLoading(false)
+        }
+    }
+
     return (
         <article className={styles.card}>
             <h1>Password Reset</h1>
@@ -18,6 +35,9 @@ export default function ForgotForm({ changeForm, buttonState }) {
                         <label>Email</label>
                         <input
                             type="email"
+                            name="email"
+                            value={email}
+                            onChange={onChange}
                             className={styles.input}
                             placeholder="email@sample.com" />
                     </div>
@@ -28,6 +48,7 @@ export default function ForgotForm({ changeForm, buttonState }) {
 
                     <Button
                         isLoading={buttonState}
+                        onClick={handleForgotPassword}
                         cstyle={'w-full'}
                     >Confirm</Button>
                 </fieldset>

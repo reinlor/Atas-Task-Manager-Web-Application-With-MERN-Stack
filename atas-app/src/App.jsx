@@ -9,6 +9,7 @@ import Tasks from './pages/Tasks';
 import Timetable from './pages/Timetable';
 import Team from './pages/Team';
 import VerifyEmail from './pages/VerifyEmail';
+import ForgotPass from './pages/ForgotPass';
 
 // Layout Imports
 import Layout from './layout/Layout';
@@ -33,6 +34,7 @@ function App() {
       <Routes>
         <Route path='/' element={<Login />} />
         <Route path='/verify-email' element={<VerifyEmail />} />
+        <Route path='/forgot-pass' element={<ForgotPass />} />
 
         <Route element={<Layout />}>
           <Route path='/dashboard' element={<Dashboard />} />
