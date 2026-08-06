@@ -5,6 +5,7 @@ const styles = {
 };
 
 import Button from "../../component/Button";
+import TextInput from "../../component/TextInput";
 
 export default function ForgotForm({ changeForm, buttonState, handleForgotPassword, onChange, formData }) {
     const { email } = formData
@@ -33,12 +34,11 @@ export default function ForgotForm({ changeForm, buttonState, handleForgotPasswo
 
                     <div className="flex flex-col">
                         <label>Email</label>
-                        <input
+                        <TextInput
                             type="email"
                             name="email"
                             value={email}
                             onChange={onChange}
-                            className={styles.input}
                             placeholder="email@sample.com" />
                     </div>
                     <button

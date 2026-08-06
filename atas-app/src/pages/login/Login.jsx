@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 
 import GoogleLoginButton from "../../component/GoogleLoginButton";
 import Button from "../../component/Button";
+import TextInput from "../../component/TextInput";
 
 import ForgotForm from "./ForgotForm";
 import RegisterForm from "./RegisterForm";
@@ -164,11 +165,11 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                     {/* Username field */}
                     <div className="flex flex-col">
                         <label className="">Email</label>
-                        <input
+                        <TextInput
                             type="text" id="email" name="email"
                             value={email}
-                            className={styles.input}
-                            onChange={onChange} />
+                            onChange={onChange}
+                        />
                     </div>
 
                     {/* Password Field */}
@@ -181,11 +182,12 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                                 {showPass ? "Hide" : "Show"}
                             </button>
                         </div>
-                        <input
-                            type={showPass ? "text" : "password"} id="password" name="password"
+                        <TextInput
+                            isPassword={showPass} name="password"
                             value={password}
                             className={styles.input}
-                            onChange={onChange} />
+                            onChange={onChange}
+                        />
                     </div>
 
                     {/* Forgot Password */}

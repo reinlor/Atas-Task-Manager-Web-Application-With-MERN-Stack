@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Button from "../../component/Button";
+import TextInput from "../../component/TextInput";
 
 const styles = {
     card: "flex flex-col justify-center rounded-sm border-2 w-120 p-3",
@@ -22,12 +23,11 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                     {/* Email */}
                     <div>
                         <label htmlFor="email">Email</label>
-                        <input
+                        <TextInput
                             type="email"
                             placeholder="sample@email.com"
                             id="email"
                             name="email"
-                            className={styles.input}
                             onChange={onChange}
                             value={email} />
                     </div>
@@ -41,10 +41,9 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                                 {showPass ? "Hide" : "Show"}
                             </button>
                         </div>
-                        <input
-                            type={showPass ? "text" : "password"}
+                        <TextInput
+                            isPassword={showPass}
                             placeholder="password"
-                            className={styles.input}
                             onChange={onChange}
                             value={password}
                             name="password"
@@ -53,11 +52,10 @@ export default function RegisterForm({ changeForm, onChange, formData, handleReg
                     {/* Username */}
                     <div>
                         <label htmlFor="username">Username</label>
-                        <input
+                        <TextInput
                             type="input"
                             placeholder="username"
                             name="username"
-                            className={styles.input}
                             onChange={onChange}
                             value={username} />
                     </div>
