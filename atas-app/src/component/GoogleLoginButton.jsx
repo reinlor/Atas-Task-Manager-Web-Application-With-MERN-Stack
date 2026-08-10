@@ -9,25 +9,31 @@ export default function GoogleLoginButton() {
     const handleSuccess = async (credentialResponse) => {
         try {
             const idToken = credentialResponse.credential;
-            console.log
             const response = await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/auth/google`,
                 { idToken },
                 { withCredentials: true }
             );
-            
+
             toast(`Welcome, ${response.data.username}!`);
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
             console.error('Login Failed:', error.response?.data || error.message);
-            toast('Server Error')
+            toast.error('Server error. Please try again.');
         }
     };
 
     return (
-        <GoogleLogin
-            onSuccess={handleSuccess}
-            onError={() => console.log('Google Sign-In Cancelled/Failed')}
-        />
+        <div className="w-full rounded-lg overflow-hidden [&>div]:w-full [&_iframe]:w-full">
+            <GoogleLogin
+                onSuccess={handleSuccess}
+                onError={() => console.log('Google Sign-In Cancelled/Failed')}
+                theme="filled_black"
+                shape="rectangular"
+                size="large"
+                text="continue_with"
+                width="384"
+            />
+        </div>
     );
 };

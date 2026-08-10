@@ -1,58 +1,43 @@
-const styles = {
-    card: "flex flex-col justify-center rounded-sm border-2 w-120 p-3",
-    button: "text-center w-full p-1 border-3 rounded-sm mb-4 cursor-pointer",
-    input: "border-3 rounded-sm p-1 w-full"
-};
-
-import Button from "../../component/Button";
 import TextInput from "../../component/TextInput";
+import Button from "../../component/Button";
 
 export default function ForgotForm({ changeForm, buttonState, handleForgotPassword, onChange, formData }) {
     const { email } = formData
-    const handlePasswordChange = async () => {
-        try {
-            setButtonLoading(true)
-            const response = await axios(
-                `${import.meta.env.VITE_API_BASE_URL}/api/new-pass`, {
-                token: token,
-                newPassword: newPass,
-                confirmPassword: confirmPasss
-            })
-        } catch (error) {
-            setMessage(error?.response?.data?.message)
-        } finally {
-            setButtonLoading(false)
-        }
-    }
 
     return (
-        <article className={styles.card}>
-            <h1>Password Reset</h1>
-            <form>
-                <fieldset>
-                    <legend>Reset password will be sent on your registered email</legend>
+        <form onSubmit={handleForgotPassword}>
+            <fieldset>
+                <legend className="sr-only">Reset your password</legend>
 
-                    <div className="flex flex-col">
-                        <label>Email</label>
-                        <TextInput
-                            type="email"
-                            name="email"
-                            value={email}
-                            onChange={onChange}
-                            placeholder="email@sample.com" />
-                    </div>
+                <div>
+                    <label htmlFor="email" className="block text-xs font-medium tracking-wide text-secondary mb-1.5">Email</label>
+                    <TextInput
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={email}
+                        onChange={onChange}
+                        placeholder="you@example.com"
+                        className="w-full bg-input border border-divider rounded-lg px-3.5 py-2.5 text-sm text-primary placeholder-accent-color/70 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                </div>
+
+                <Button
+                    isLoading={buttonState}
+                    onClick={handleForgotPassword}
+                    cstyle='w-full'
+                >Send reset link</Button>
+
+                <p className="text-center text-sm text-secondary mt-6">
+                    Remembered it?{' '}
                     <button
                         type="button"
                         onClick={() => changeForm('login')}
-                        className="underline text-gray-600 cursor-pointer pb-4 text-sm">Login Page</button>
-
-                    <Button
-                        isLoading={buttonState}
-                        onClick={handleForgotPassword}
-                        cstyle={'w-full'}
-                    >Confirm</Button>
-                </fieldset>
-            </form>
-        </article>
+                        className="text-brand hover:brightness-110 font-medium cursor-pointer">
+                        Back to login
+                    </button>
+                </p>
+            </fieldset>
+        </form>
     )
 }

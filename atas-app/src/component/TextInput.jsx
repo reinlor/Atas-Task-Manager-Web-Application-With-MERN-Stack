@@ -3,11 +3,9 @@ export default function TextInput({
     onClick,
     onChange,
     placeholder,
-    className = "",
     name,
     ...props
 }) {
-    const defaultStyling = "border-2 rounded-sm p-1 w-full"
 
     return (
         <input
@@ -15,7 +13,7 @@ export default function TextInput({
             onClick={onClick}
             onChange={onChange}
             placeholder={placeholder}
-            className={`${defaultStyling} ${className}`.trim()}
+            className="w-full bg-input border border-divider rounded-lg px-3.5 py-2.5 text-sm text-primary placeholder-accent-color/70 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             name={name}
             {...props} 
         />

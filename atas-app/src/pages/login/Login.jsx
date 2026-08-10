@@ -7,14 +7,18 @@ import GoogleLoginButton from "../../component/GoogleLoginButton";
 import Button from "../../component/Button";
 import TextInput from "../../component/TextInput";
 
+import AuthLayout from "./AuthLayout";
 import ForgotForm from "./ForgotForm";
 import RegisterForm from "./RegisterForm";
 
-const styles = {
-    card: "flex flex-col justify-center rounded-sm border-2 w-120 p-3",
-    button: "text-center w-full p-1 border-3 rounded-sm mb-4 cursor-pointer",
-    input: "border-3 rounded-sm p-1 w-full"
-};
+// Copy for each screen lives in one place, keyed by the same activeForm value
+// that already drives handleFormChange — so title/subtitle can never drift out
+// of sync with which form is actually showing.
+const SCREEN_COPY = {
+    login: { eyebrow: "Sign in", title: "Welcome back", subtitle: "Enter your credentials to continue." },
+    register: { eyebrow: "Create account", title: "Join atas", subtitle: "Start planning with your team in minutes." },
+    forgot: { eyebrow: "Reset password", title: "Forgot your password?", subtitle: "We'll email you a link to get back in." },
+}
 
 export default function Login() {
     const [activeForm, setActiveForm] = useState("login");
@@ -28,7 +32,7 @@ export default function Login() {
 
 
     // Helpers
-    const navigate = useNavigate('/');
+    const navigate = useNavigate();
     const onChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -49,7 +53,7 @@ export default function Login() {
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
             console.error(error.response?.data?.message || 'An error occurred during login.');
-            toast(error.response?.data?.message)
+            toast.error(error.response?.data?.message || 'An error occurred during login.')
         } finally {
             setIsButtonLoading(false)
         }
@@ -82,7 +86,6 @@ export default function Login() {
 
     const handleForgotPassword = async (e) => {
         try {
-            console.log("clicked")
             setIsButtonLoading(true)
             const response = await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/forgotPass`, { email })
@@ -94,129 +97,134 @@ export default function Login() {
         }
     }
 
-    const handleFormChange = () => {
-        switch (activeForm) {
-            case "login":
-                return <LoginForm
-                    handleLogin={handleLogin}
-                    changeForm={switchForm}
-                    formData={formData}
-                    onChange={onChange}
-                    buttonState={isButtonLoading}
-                />
-            case "register":
-                return <RegisterForm
-                    changeForm={switchForm}
-                    formData={formData}
-                    onChange={onChange}
-                    handleRegister={handleRegister}
-                    buttonState={isButtonLoading}
-                />
-            case "forgot":
-                return <ForgotForm
-                    changeForm={switchForm}
-                    formData={formData}
-                    onChange={onChange}
-                    handleForgotPassword={handleForgotPassword}
-                    buttonState={isButtonLoading}
-                />
-            default:
-                return <LoginForm
-                    handleLogin={handleLogin}
-                    changeForm={switchForm}
-                    formData={formData}
-                    onChange={onChange}
-                    buttonState={isButtonLoading}
-                />
-        }
-    }
-
     const switchForm = (nextForm) => {
         setFormData(prev => ({ ...prev, password: '' }))
         setActiveForm(nextForm);
     }
 
+    const copy = SCREEN_COPY[activeForm] ?? SCREEN_COPY.login
+
+    const activeStyles = "opacity-100 scale-100 pointer-events-auto z-10";
+    const hiddenStyles = "opacity-0 scale-95 pointer-events-none z-0";
+
     return (
-        <main className="flex justify-center items-center w-full min-h-svh">
-            {
-                handleFormChange()
-            }
+        <main className="flex justify-center items-center w-full min-h-svh bg-main p-4 md:p-8">
+            <AuthLayout eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle}>
+                
+                <div className="relative w-full min-h-[380px] grid grid-cols-1 items-start">
+                    
+                    {/* Login Form */}
+                    <div className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-in-out ${activeForm === "login" ? activeStyles : hiddenStyles}`}>
+                        <LoginForm
+                            handleLogin={handleLogin}
+                            changeForm={switchForm}
+                            formData={formData}
+                            onChange={onChange}
+                            buttonState={isButtonLoading}
+                        />
+                    </div>
+
+                    {/* Register Form */}
+                    <div className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-in-out ${activeForm === "register" ? activeStyles : hiddenStyles}`}>
+                        <RegisterForm
+                            changeForm={switchForm}
+                            formData={formData}
+                            onChange={onChange}
+                            handleRegister={handleRegister}
+                            buttonState={isButtonLoading}
+                        />
+                    </div>
+
+                    {/* Forgot Pass Form */}
+                    <div className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-in-out ${activeForm === "forgot" ? activeStyles : hiddenStyles}`}>
+                        <ForgotForm
+                            changeForm={switchForm}
+                            formData={formData}
+                            onChange={onChange}
+                            handleForgotPassword={handleForgotPassword}
+                            buttonState={isButtonLoading}
+                        />
+                    </div>
+
+                </div>
+
+            </AuthLayout>
         </main>
-    )
+    );
 }
 
 function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState }) {
     const [showPass, setShowPass] = useState(false);
     const { email, password } = formData;
-    const [isLoading, setIsLoading] = useState(false)
 
     return (
-        <article className={styles.card}>
-            <h1 className="mb-2 text-center ">Sign-in</h1>
+        <form onSubmit={handleLogin}>
+            <fieldset>
+                {/* Not visually presented but being read by screen reader 😏 */}
+                <legend className="sr-only">Sign in to your account</legend>
 
-            <form>
-                <fieldset>
-                    <legend className="text-center text-xs mb-5">Enter your login credentials or sign-in with google</legend>
+                <GoogleLoginButton />
 
-                    <GoogleLoginButton />
+                <div className="flex items-center gap-3 my-6">
+                    <div className="h-px flex-1 bg-divider" />
+                    <span className="text-[11px] uppercase tracking-widest text-accent-color">or</span>
+                    <div className="h-px flex-1 bg-divider" />
+                </div>
 
-                    <p aria-hidden="true" className="text-center">OR</p>
-
-                    {/* Username field */}
-                    <div className="flex flex-col">
-                        <label className="">Email</label>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="email" className="block text-xs font-medium tracking-wide text-secondary mb-1.5">Email</label>
                         <TextInput
-                            type="text" id="email" name="email"
+                            type="email" id="email" name="email"
                             value={email}
                             onChange={onChange}
+                            placeholder="you@example.com"
+                            
                         />
                     </div>
 
-                    {/* Password Field */}
                     <div>
-                        <div className="flex justify-between">
-                            <label htmlFor="password">Password</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label htmlFor="password" className="text-xs font-medium tracking-wide text-secondary">Password</label>
                             <button
                                 type="button" onClick={() => setShowPass(!showPass)}
-                                className="underline cursor-pointer">
+                                className="text-xs text-accent-color hover:text-primary transition-colors cursor-pointer">
                                 {showPass ? "Hide" : "Show"}
                             </button>
                         </div>
                         <TextInput
-                            isPassword={showPass} name="password"
+                            isPassword={!showPass} id="password" name="password"
                             value={password}
-                            className={styles.input}
                             onChange={onChange}
                         />
                     </div>
 
-                    {/* Forgot Password */}
-                    <div>
+                    <div className="flex justify-end -mt-1">
                         <button
                             type="button"
                             onClick={() => changeForm('forgot')}
-                            className="underline text-gray-500 text-sm cursor-pointer">Forgot Password</button>
+                            className="text-xs text-accent-color hover:text-brand transition-colors cursor-pointer">
+                            Forgot password?
+                        </button>
                     </div>
 
-                    {/* Login Button */}
                     <Button
                         onClick={handleLogin}
                         isLoading={buttonState}
-                        cstyle={'w-full'}
+                        cstyle="w-full"
                     >Log In</Button>
+                </div>
 
-                    {/* Register Button */}
-                    <p className="text-center">
-                        Don't have an account? &nbsp;
-                        <button
-                            type="button"
-                            onClick={() => {
-                                changeForm('register')
-                            }}
-                            className="text-green-500 cursor-pointer">Register</button>
-                    </p>
-                </fieldset>
-            </form>
-        </article>
+                <p className="text-center text-sm text-secondary mt-6">
+                    Don't have an account?{' '}
+                    <button
+                        type="button"
+                        onClick={() => changeForm('register')}
+                        className="text-brand hover:brightness-110 font-medium cursor-pointer">
+                        Register
+                    </button>
+                </p>
+            </fieldset>
+        </form>
     )
 }

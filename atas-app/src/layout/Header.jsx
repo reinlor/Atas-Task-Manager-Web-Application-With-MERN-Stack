@@ -1,9 +1,36 @@
+import { useLocation } from "react-router-dom";
+import { BellIcon } from "../component/Icons";
+
+const PAGE_TITLES = {
+    "/dashboard": "Dashboard",
+    "/task": "Tasks",
+    "/timetable": "Timetable",
+    "/team": "Team",
+};
+
 function Header() {
-    return(
-        <header className="bg-blue-200">
-            this is a Header
+    const location = useLocation();
+    const title = PAGE_TITLES[location.pathname] ?? "atas";
+
+    return (
+        <header className="flex items-center justify-between px-6 py-4 border-b border-divider bg-main">
+            <h1 className="text-lg font-semibold text-primary">{title}</h1>
+
+            <div className="flex items-center gap-4">
+                <button
+                    type="button"
+                    aria-label="Notifications"
+                    className="text-secondary hover:text-primary transition-colors cursor-pointer"
+                >
+                    <BellIcon className="w-5 h-5" />
+                </button>
+
+                <div className="w-8 h-8 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center text-xs font-medium text-brand">
+                    RL
+                </div>
+            </div>
         </header>
-    )
+    );
 }
 
 export default Header;

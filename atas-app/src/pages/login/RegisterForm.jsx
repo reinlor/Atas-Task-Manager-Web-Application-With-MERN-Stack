@@ -2,78 +2,79 @@ import { useState } from "react";
 import Button from "../../component/Button";
 import TextInput from "../../component/TextInput";
 
-const styles = {
-    card: "flex flex-col justify-center rounded-sm border-2 w-120 p-3",
-    button: "text-center w-full p-1 border-3 rounded-sm mb-4 cursor-pointer",
-    input: "border-3 rounded-sm p-1 w-full"
-};
-
 export default function RegisterForm({ changeForm, onChange, formData, handleRegister, buttonState }) {
     const [showPass, setShowPass] = useState(false);
     const { email, password, username } = formData
 
     return (
-        <article className={styles.card}>
-            <h1 className="text-center">Register</h1>
+        <form onSubmit={handleRegister}>
+            <fieldset>
+                <legend className="sr-only">Create your account</legend>
 
-            <form>
-                <fieldset>
-                    <legend className="text-center pb-3 text-xs">Enter the credentials your credentials to register</legend>
-
-                    {/* Email */}
+                <div className="space-y-4">
                     <div>
-                        <label htmlFor="email">Email</label>
+                        <label htmlFor="email" className="block text-xs font-medium tracking-wide text-secondary mb-1.5">Email</label>
                         <TextInput
                             type="email"
-                            placeholder="sample@email.com"
                             id="email"
                             name="email"
+                            placeholder="you@example.com"
                             onChange={onChange}
-                            value={email} />
+                            value={email}
+                            className="w-full bg-input border border-divider rounded-lg px-3.5 py-2.5 text-sm text-primary placeholder-accent-color/70 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
+                        />
                     </div>
-                    {/* Password */}
+
                     <div>
-                        <div className="flex justify-between">
-                            <label htmlFor="password">Password</label>
+                        <label htmlFor="username" className="block text-xs font-medium tracking-wide text-secondary mb-1.5">Username</label>
+                        <TextInput
+                            type="text"
+                            id="username"
+                            placeholder="jane_doe"
+                            name="username"
+                            onChange={onChange}
+                            value={username}
+                            className="w-full bg-input border border-divider rounded-lg px-3.5 py-2.5 text-sm text-primary placeholder-accent-color/70 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
+                        />
+                    </div>
+
+                    <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label htmlFor="password" className="text-xs font-medium tracking-wide text-secondary">Password</label>
                             <button
                                 type="button" onClick={() => setShowPass(!showPass)}
-                                className="underline cursor-pointer">
+                                className="text-xs text-accent-color hover:text-primary transition-colors cursor-pointer">
                                 {showPass ? "Hide" : "Show"}
                             </button>
                         </div>
                         <TextInput
-                            isPassword={showPass}
-                            placeholder="password"
+                            isPassword={!showPass}
+                            placeholder="At least 8 characters"
+                            id="password"
                             onChange={onChange}
                             value={password}
                             name="password"
+                            className="w-full bg-input border border-divider rounded-lg px-3.5 py-2.5 text-sm text-primary placeholder-accent-color/70 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
                         />
                     </div>
-                    {/* Username */}
-                    <div>
-                        <label htmlFor="username">Username</label>
-                        <TextInput
-                            type="input"
-                            placeholder="username"
-                            name="username"
-                            onChange={onChange}
-                            value={username} />
-                    </div>
 
-                    {/* Go Back to Login Card */}
-                    <button
-                        type="button"
-                        onClick={() => changeForm('login')}
-                        className="underline text-gray-600 cursor-pointer pb-4 text-sm">Login Page</button>
-
-                    {/* Register Button */}
                     <Button
                         onClick={handleRegister}
                         isLoading={buttonState}
-                        cstyle={'w-full'}
-                    >Register</Button>
-                </fieldset>
-            </form>
-        </article>
+                        cstyle='w-full'
+                    >Create account</Button>
+                </div>
+
+                <p className="text-center text-sm text-secondary mt-6">
+                    Already have an account?{' '}
+                    <button
+                        type="button"
+                        onClick={() => changeForm('login')}
+                        className="text-brand hover:brightness-110 font-medium cursor-pointer">
+                        Log in
+                    </button>
+                </p>
+            </fieldset>
+        </form>
     )
 }
