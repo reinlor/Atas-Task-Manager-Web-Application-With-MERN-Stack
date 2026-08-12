@@ -85,20 +85,19 @@ exports.getTask = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // 1. Check if the provided ID is a valid MongoDB ObjectId
+        // Check if it is a valid MongoDB id
         // if (!mongoose.Types.ObjectId.isValid(id)) {
         //     return res.status(400).json({ message: 'Invalid task ID format' });
         // }
 
-        // 2. Fetch the task
         const myTask = await task.findById(id);
 
-        // 3. Return 404 if task does not exist
+        // If task not found
         if (!myTask) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        // 4. Return the task
+        // If task exist
         res.status(200).json(myTask);
 
     } catch (error) {

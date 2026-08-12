@@ -104,10 +104,11 @@ exports.loginAccount = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'none',
             maxAge: 30 * 24 * 60 * 60 * 1000
         });
 
+        // TODO: Delete before production
         console.log("token: ", req.cookies.token)
 
         res.json({
@@ -157,9 +158,12 @@ exports.googleLogin = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
         });
+
+        // TODO: Delete before production
+        console.log("token: ", req.cookies.token)
 
         return res.status(200).json({
             _id: myGoogleAcc._id,

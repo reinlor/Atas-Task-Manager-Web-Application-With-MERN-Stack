@@ -13,7 +13,8 @@ import ForgotPass from './pages/ForgotPass';
 
 // Layout Imports
 import Layout from './layout/Layout';
-
+import axios from 'axios';
+axios.defaults.withCredentials = true;
 function App() {
   const [count, setCount] = useState(0)
 
