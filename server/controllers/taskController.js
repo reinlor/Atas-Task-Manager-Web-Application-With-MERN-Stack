@@ -1,5 +1,6 @@
 const task = require('../models/taskModel')
 const mongoose = require('mongoose')
+const jwt = require('jsonwebtoken')
 
 // Controller to post raw markdown task to the database
 exports.createTask = async (req, res) => {
@@ -12,7 +13,8 @@ exports.createTask = async (req, res) => {
         const newTask = await task.create({
             title,
             content,
-            status
+            status,
+            createdBy: req.user.id
         })
 
         return res.status(201).json({
@@ -83,17 +85,16 @@ exports.updateTask = async (req, res) => {
 // Controller to get raw markdown from the database
 exports.getTask = async (req, res) => {
     try {
-        const { id } = req.params;
-
+        const { id } = req.user;
         // Check if it is a valid MongoDB id
-        // if (!mongoose.Types.ObjectId.isValid(id)) {
-        //     return res.status(400).json({ message: 'Invalid task ID format' });
-        // }
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid task ID format' });
+        }
 
-        const myTask = await task.findById(id);
+        const myTask = await task.find({ createdBy: id });
 
         // If task not found
-        if (!myTask) {
+        if (!myTask || myTask.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
@@ -104,3 +105,28 @@ exports.getTask = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// Controller to get individual task by id
+exports.getTaskById = async (req, res) => {
+    try {
+        const { id } = req.user;
+        const pageId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid user ID format' });
+        }
+        if (!mongoose.Types.ObjectId.isValid(pageId)) {
+            return res.status(400).json({ message: 'Invalid task ID format' });
+        }
+
+        const myTask = await task.findOne({ createdBy: id, _id: pageId });
+
+        if (!myTask) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+        res.status(200).json(myTask);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}

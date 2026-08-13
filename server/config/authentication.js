@@ -9,7 +9,6 @@ module.exports = function authenticationToken(req, res, next) {
     if (token == null) return res.status(401).json({ message: 'Token not found' });
 
     jwt.verify(token, secretkey, (err, user) => {
-        // 1. Safely check if an error occurred first
         if (err) {
             if (err.name === "TokenExpiredError") {
                 return res.status(403).json({ message: "Token is Expired" });
