@@ -9,4 +9,12 @@
         --color-input: #1F1F1F;
         --color-brand: #E8A33D;
         --color-danger: #E5484D;
+
+        /* Markdown Headings Styles */
+        --text-h1: 1.70rem;
+        --text-h2: 1.60rem;
+        --text-h3: 1.50rem;
+        --text-h4: 1.40rem;
+        --text-h5: 1.30rem;
+        --text-h6: 1.20rem;
 }

@@ -5,7 +5,8 @@ import { ToastContainer } from 'react-toastify';
 // Page(s) Imports
 import Login from './pages/login/Login';
 import Dashboard from './pages/Dashboard';
-import Tasks from './pages/Tasks';
+import TaskList from './pages/task/Tasklist';
+import Tasks from './pages/task/Tasks';
 import Timetable from './pages/Timetable';
 import Team from './pages/Team';
 import VerifyEmail from './pages/VerifyEmail';
@@ -39,7 +40,8 @@ function App() {
 
         <Route element={<Layout />}>
           <Route path='/dashboard' element={<Dashboard />} />
-          <Route path='/task' element={<Tasks />} />
+          <Route path="/task" element={<TaskList />} />
+          <Route path="/task/:taskId" element={<Tasks />} />
           <Route path='/timetable' element={<Timetable />} />
           <Route path='/team' element={<Team />} />
         </Route>
