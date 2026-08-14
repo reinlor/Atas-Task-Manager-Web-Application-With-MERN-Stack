@@ -5,6 +5,6 @@ const { createTask, updateTask, getTask, getTaskById } = require('../controllers
 router.post('/create', createTask);
 router.patch('/update/:id', updateTask);
 router.get('/get', getTask);
-router.get('/get/:id', getTask);
+router.get('/get/:id', getTaskById);
 
 module.exports = router
