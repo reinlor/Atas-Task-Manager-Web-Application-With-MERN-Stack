@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "../component/Modal";
+import Button from "../component/Button";
 
 function Dashboard() {
     const [showModal, setShowModal] = useState(false);
@@ -9,17 +10,18 @@ function Dashboard() {
             <p className="text-secondary text-sm">Welcome back. Here's what's happening across your boards.</p>
 
             <Modal
-                message="Testing Lang Po"
+                title="Test"
+                content="Testing Lang"
                 display={showModal}
-                buttonContent={{ Confirm: () => setShowModal(false) }}
+                onConfirm={() => alert("Confirm Button Clicked")}
+                onCancel={() => setShowModal(false)}
             />
 
-            <button
+            <Button
                 onClick={() => setShowModal(true)}
-                className="mt-6 inline-flex items-center gap-2 bg-brand text-main text-sm font-semibold rounded-lg px-4 py-2.5 hover:brightness-110 active:brightness-95 transition cursor-pointer"
             >
                 Click me to show
-            </button>
+            </Button>
         </div>
     );
 }

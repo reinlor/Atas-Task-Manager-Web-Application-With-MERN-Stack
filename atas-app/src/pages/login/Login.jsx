@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import GoogleLoginButton from "../../component/GoogleLoginButton";
 import Button from "../../component/Button";
 import TextInput from "../../component/TextInput";
+import Modal from "../../component/Modal";
 
 import AuthLayout from "./AuthLayout";
 import ForgotForm from "./ForgotForm";
@@ -26,10 +27,32 @@ export default function Login() {
         email: '',
         password: '',
         username: ''
-    })
+    });
     const { email, password, username } = formData;
-    const [isButtonLoading, setIsButtonLoading] = useState(false)
-
+    const [isButtonLoading, setIsButtonLoading] = useState(false);
+    
+    // Use states and helpers for modals
+    const [showModal, setShowModal] = useState(false);
+    const [modalData, setModalData] = useState({
+        title: "",
+        content: ""
+    });
+    const cleanModalState = () => {
+        setIsButtonLoading(false);
+        setModalData({title: "", content: ""});
+        setProceed(false)
+    }
+    const onConfirmModal = ()=> {
+        setShowModal(false)
+        cleanModalState()
+    }
+    const displayModal = (title, content) => {
+        setModalData({
+            title: title,
+            content: content
+        })
+        setShowModal(true)
+    }
 
     // Helpers
     const navigate = useNavigate();
@@ -89,7 +112,10 @@ export default function Login() {
             setIsButtonLoading(true)
             const response = await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/forgotPass`, { email })
-            toast(response?.data?.message)
+            
+            if (response.status === 200){
+                displayModal("Reset Password", response?.data?.message)
+            }
         } catch (error) {
             toast.error(error?.response?.data?.message)
         } finally {
@@ -110,9 +136,16 @@ export default function Login() {
     return (
         <main className="flex justify-center items-center w-full min-h-svh bg-main p-4 md:p-8">
             <AuthLayout eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle}>
-                
+
+                <Modal
+                    title={modalData.title}
+                    content={modalData.content}
+                    display={showModal}
+                    onConfirm={onConfirmModal}
+                />
+
                 <div className="relative w-full min-h-[380px] grid grid-cols-1 items-start">
-                    
+
                     {/* Login Form */}
                     <div className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-in-out ${activeForm === "login" ? activeStyles : hiddenStyles}`}>
                         <LoginForm
@@ -179,7 +212,7 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                             value={email}
                             onChange={onChange}
                             placeholder="you@example.com"
-                            
+
                         />
                     </div>
 
