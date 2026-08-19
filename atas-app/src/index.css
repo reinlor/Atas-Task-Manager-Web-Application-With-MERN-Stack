@@ -9,6 +9,7 @@
         --color-input: #1F1F1F;
         --color-brand: #E8A33D;
         --color-danger: #E5484D;
+        --color-success: #34D399;
 
         /* Markdown Headings Styles */
         --text-h1: 1.70rem;
@@ -17,4 +18,5 @@
         --text-h4: 1.40rem;
         --text-h5: 1.30rem;
         --text-h6: 1.20rem;
+
 }

@@ -8,14 +8,15 @@ import rehypeSanitize from 'rehype-sanitize';
 import axios from "axios";
 import { toast } from "react-toastify";
 import { ChevronDownIcon } from "../../component/Icons";
+import { useTaskEditor } from "../../context/TaskEditorContext";
 
 const MARKDOWN_TYPOGRAPHY = `
     [&_h1]:text-h1 [&_h1]:font-semibold [&_h1]:mb-2 [&_h1]:mt-1
     [&_h2]:text-h2 [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1
-    [&_h3]:text-h3 [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1
-    [&_h4]:text-h4 [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1
-    [&_h5]:text-h5 [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1
-    [&_h6]:text-h6 [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1
+    [&_h3]:text-h3 [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-1
+    [&_h4]:text-h4 [&_h4]:font-semibold [&_h4]:mb-2 [&_h4]:mt-1
+    [&_h5]:text-h5 [&_h5]:font-semibold [&_h5]:mb-2 [&_h5]:mt-1
+    [&_h6]:text-h6 [&_h6]:font-semibold [&_h6]:mb-2 [&_h6]:mt-1
 
     [&_p]:text-secondary [&_p]:mb-3 [&_p]:leading-relaxed
     [&_pre]:bg-[#161616] [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:mb-3 [&_pre]:overflow-x-auto
@@ -25,10 +26,14 @@ const MARKDOWN_TYPOGRAPHY = `
     [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_ol]:text-secondary
     [&_li]:mb-1
 
-    [&_a]:text-[var(--color-brand)] [&_a]:underline
+    [&_ul.contains-task-list]:list-none [&_ul.contains-task-list]:pl-0
+    [&_li.task-list-item]:flex [&_li.task-list-item]:items-center [&_li.task-list-item]:gap-2
+    [&_input[type="checkbox"]]:m-0 [&_input[type="checkbox"]]:cursor-pointer
+
+    [&_a]:text-brand [&_a]:underline
     
     [&_code]:font-mono [&_code]:text-[13px] [&_code]:bg-[#161616] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded
-    [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-brand)]/50 [&_blockquote]:pl-3 [&_blockquote]:text-secondary [&_blockquote]:italic
+    [&_blockquote]:border-l-2 [&_blockquote]:border-brand/50 [&_blockquote]:pl-3 [&_blockquote]:text-secondary [&_blockquote]:italic
     
     [&_table]:w-full [&_table]:text-sm [&_table]:mb-3
     [&_th]:border [&_th]:border-divider [&_th]:px-2 [&_th]:py-1 [&_th]:text-left
@@ -36,15 +41,33 @@ const MARKDOWN_TYPOGRAPHY = `
 `;
 
 const STATUS_STYLES = {
-    "Pending": { dot: "bg-[var(--color-accent-color)]", text: "text-secondary" },
-    "In Progress": { dot: "bg-[var(--color-brand)]", text: "text-[var(--color-brand)]" },
+    "Pending": { dot: "bg-accent-color", text: "text-secondary" },
+    "In Progress": { dot: "bg-brand", text: "text-brand" },
     "Complete": { dot: "bg-secondary", text: "text-secondary" },
 };
+
+function FadeIn({ children, className = "" }) {
+    const [visible, setVisible] = useState(false);
+    useEffect(() => {
+        const frame = requestAnimationFrame(() => setVisible(true));
+        return () => cancelAnimationFrame(frame);
+    }, []);
+    return (
+        <div
+            className={`transition-all duration-200 ease-out ${
+                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+            } ${className}`}
+        >
+            {children}
+        </div>
+    );
+}
 
 export default function Tasks() {
     const { taskId } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const { registerActiveTask, clearActiveTask } = useTaskEditor();
 
     const [title, setTitle] = useState("");
     const [markdown, setMarkdown] = useState("");
@@ -82,7 +105,6 @@ export default function Tasks() {
                     `${import.meta.env.VITE_API_BASE_URL}/api/task/get/${taskId}`,
                     { withCredentials: true }
                 )
-                console.log(response)
                 setTitle(response.data.title)
                 setMarkdown(response.data.content)
                 setStatus(response.data.status)
@@ -94,6 +116,23 @@ export default function Tasks() {
         }
         fetchTask();
     }, [taskId])
+
+    // Register with the shared context so Aichat can read this task's current
+    // content (getSnapshot) and write a new version into this same editor
+    // state (applyContent) when the user applies an AI-suggested diff — all
+    // without either component needing to import or know about the other's
+    // internals. Cleanup on unmount matters: if this ran without it, the
+    // chat widget could keep applying changes to a task that isn't open
+    // anymore after you've navigated away.
+    useEffect(() => {
+        if (isLoading) return;
+        registerActiveTask({
+            taskId,
+            getSnapshot: () => ({ title, content: markdown, status }),
+            applyContent: (newContent) => setMarkdown(newContent),
+        });
+        return () => clearActiveTask();
+    }, [taskId, title, markdown, status, isLoading, registerActiveTask, clearActiveTask]);
 
     if (isLoading) {
         return <p className="text-secondary text-sm">Loading task…</p>;
@@ -114,14 +153,16 @@ export default function Tasks() {
                 </button>
 
                 <div className="flex items-center gap-3">
-                    <div className="inline-flex items-center bg-input border border-divider rounded-lg p-1">
+                    <div className="relative inline-flex items-center bg-input border border-divider rounded-lg p-1">
+                        <div
+                            className="absolute top-1 bottom-1 rounded-md bg-brand transition-all duration-200 ease-out"
+                            style={{ width: "calc(50% - 4px)", left: mode === "view" ? "4px" : "50%" }}
+                        />
                         <button
                             type="button"
                             onClick={() => setMode('view')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                                mode === 'view'
-                                    ? 'bg-brand text-main'
-                                    : 'text-secondary hover:text-primary'
+                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                                mode === 'view' ? 'text-main' : 'text-secondary hover:text-primary'
                             }`}
                         >
                             View
@@ -129,10 +170,8 @@ export default function Tasks() {
                         <button
                             type="button"
                             onClick={() => setMode('edit')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                                mode === 'edit'
-                                    ? 'bg-brand text-main'
-                                    : 'text-secondary hover:text-primary'
+                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                                mode === 'edit' ? 'text-main' : 'text-secondary hover:text-primary'
                             }`}
                         >
                             Edit
@@ -140,21 +179,23 @@ export default function Tasks() {
                     </div>
 
                     {mode === 'edit' && (
-                        <button
-                            type="button"
-                            onClick={handleSaveTask}
-                            disabled={isSaving || !canSave}
-                            title={!canSave ? 'Title is required' : undefined}
-                            className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand text-main hover:brightness-110 active:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                            {isSaving ? 'Saving…' : 'Save'}
-                        </button>
+                        <FadeIn key="save-button" className="inline-block">
+                            <button
+                                type="button"
+                                onClick={handleSaveTask}
+                                disabled={isSaving || !canSave}
+                                title={!canSave ? 'Title is required' : undefined}
+                                className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand text-main hover:brightness-110 active:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                {isSaving ? 'Saving…' : 'Save'}
+                            </button>
+                        </FadeIn>
                     )}
                 </div>
             </div>
 
             {mode === 'view' ? (
-                <div className="max-w-3xl mx-auto w-full">
+                <FadeIn key="view" className="max-w-3xl mx-auto w-full">
                     <div className="flex items-center gap-3 mb-6">
                         <h1 className="text-2xl font-semibold text-primary">{title}</h1>
                         <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-input border border-divider ${statusStyle.text}`}>
@@ -169,12 +210,9 @@ export default function Tasks() {
                             {markdown}
                         </Markdown>
                     </div>
-                </div>
+                </FadeIn>
             ) : (
-                <div className="flex flex-col flex-1 min-h-0">
-                    {/* Title + status live above the split editor, matching where
-                        they appear in view mode — switching modes shouldn't feel
-                        like landing on a different page. */}
+                <FadeIn key="edit" className="flex flex-col flex-1 min-h-0">
                     <div className="flex items-start gap-3 mb-4">
                         <input
                             type="text"
@@ -224,7 +262,7 @@ export default function Tasks() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </FadeIn>
             )}
         </div>
     );

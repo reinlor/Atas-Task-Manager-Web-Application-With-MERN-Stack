@@ -73,3 +73,29 @@ export function ChevronDownIcon(props) {
         </svg>
     );
 }
+
+export function SparkleIcon(props) {
+    return (
+        <svg {...base} {...props}>
+            <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" />
+            <circle cx="12" cy="12" r="2.5" />
+        </svg>
+    );
+}
+ 
+export function XIcon(props) {
+    return (
+        <svg {...base} {...props}>
+            <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+    );
+}
+ 
+export function SendIcon(props) {
+    return (
+        <svg {...base} {...props}>
+            <path d="M4 12l16-8-6 16-2.5-6.5L4 12z" />
+        </svg>
+    );
+}
+ 
