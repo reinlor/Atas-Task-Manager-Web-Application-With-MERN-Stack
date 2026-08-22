@@ -23,6 +23,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser())
+// TODO: Remove this log before deployment
 app.use((req, res, next) => {
     console.log(`Path: ${req.path} Method: ${req.method}`);
     next();

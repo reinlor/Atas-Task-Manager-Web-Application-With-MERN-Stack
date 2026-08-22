@@ -1,6 +1,7 @@
 const task = require('../models/taskModel')
 const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
+const redisClient = require('../config/redis')
 
 // Controller to post raw markdown task to the database
 exports.createTask = async (req, res) => {
@@ -32,6 +33,8 @@ exports.updateTask = async (req, res) => {
     try {
         const updates = req.body;
         const { id } = req.params;
+
+        const cacheKey = `tasklist:${id}`
 
         const currentTask = await task.findById(id);
         if (!currentTask) {
@@ -70,6 +73,8 @@ exports.updateTask = async (req, res) => {
 
         // SAVE the updated task to MongoDB!
         await currentTask.save();
+        
+        await redisClient.del(cacheKey)
 
         res.status(200).json({
             message: 'Task updated successfully',
@@ -86,9 +91,20 @@ exports.updateTask = async (req, res) => {
 exports.getTask = async (req, res) => {
     try {
         const { id } = req.user;
+        
         // Check if it is a valid MongoDB id
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ message: 'Invalid task ID format' });
+        }
+        
+        // Checking if cache exists 😏
+        const cacheKey = `task: ${id}`
+        const cachedTask = await redisClient.get(cacheKey)
+        if (cachedTask){
+            console.log('Retrieve using cache'); // TODO: remove log before deployment
+            return res.status(200).json(
+                JSON.parse(cachedTask)
+            )
         }
 
         const myTask = await task.find({ createdBy: id });
@@ -98,7 +114,11 @@ exports.getTask = async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        // Store on redis cache
+        await redisClient.set(cacheKey, JSON.stringify(myTask), {EX: 60}) //TODO: Change 60 to much longer before deployment
+
         // If task exist
+        console.log('retrieve directly from database') // TODO: remove log before deployment
         res.status(200).json(myTask);
 
     } catch (error) {
@@ -119,12 +139,26 @@ exports.getTaskById = async (req, res) => {
             return res.status(400).json({ message: 'Invalid task ID format' });
         }
 
+        // Checking if cache exists 😏
+        const cacheKey = `tasklist:${pageId}`
+        const cachedTask = await redisClient.get(cacheKey)
+        if (cachedTask){
+            console.log('Retrieve using cache'); // TODO: remove log before deployment
+            return res.status(200).json(
+                JSON.parse(cachedTask)
+            )
+        }
+
         const myTask = await task.findOne({ createdBy: id, _id: pageId });
 
         if (!myTask) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
+        // Store on redis cache
+        await redisClient.set(cacheKey, JSON.stringify(myTask), {EX: 60}) //TODO: Change 60 to much longer before deployment
+        
+        console.log('retrieve directly from database') // TODO: remove log before deployment
         res.status(200).json(myTask);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
