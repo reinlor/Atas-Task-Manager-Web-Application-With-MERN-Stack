@@ -52,7 +52,9 @@ export default function Modal({
             <div className="flex justify-end gap-2 mt-6">
                 {/* Cancel Button */}
                 {onCancel && (
-                    <Button onClick={onCancel} variant="secondary">
+                    <Button 
+                        onClick={onCancel} 
+                        variant="secondary">
                         Cancel
                     </Button>
                 )}

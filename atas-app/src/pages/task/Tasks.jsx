@@ -1,3 +1,5 @@
+// TODO: Modify flow of how modal is being used
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Markdown from "react-markdown";
@@ -9,6 +11,8 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { ChevronDownIcon } from "../../component/Icons";
 import { useTaskEditor } from "../../context/TaskEditorContext";
+import Button from "../../component/Button";
+import Modal from "../../component/Modal";
 
 const MARKDOWN_TYPOGRAPHY = `
     [&_h1]:text-h1 [&_h1]:font-semibold [&_h1]:mb-2 [&_h1]:mt-1
@@ -54,9 +58,8 @@ function FadeIn({ children, className = "" }) {
     }, []);
     return (
         <div
-            className={`transition-all duration-200 ease-out ${
-                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-            } ${className}`}
+            className={`transition-all duration-200 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+                } ${className}`}
         >
             {children}
         </div>
@@ -75,6 +78,11 @@ export default function Tasks() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [mode, setMode] = useState(searchParams.get("new") === "true" ? "edit" : "view");
+    const [showModal, setShowModal] = useState(false)
+    const [modalData, setModalData] = useState({
+        title: '',
+        content: ''
+    })
 
     const canSave = (title ?? "").trim().length > 0;
 
@@ -95,6 +103,30 @@ export default function Tasks() {
         } finally {
             setIsSaving(false)
         }
+    }
+
+    const handeDelete = async () => {
+        try {
+            const response = await axios.delete(
+                `${import.meta.env.VITE_API_BASE_URL}/api/task/delete/${taskId}`,
+                { withCredentials: true }
+            )
+            if (response.status === 200) {
+                toast.success('Task deleted')
+                navigate('/task')
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Update failed.')
+        } finally {
+            setShowModal(false)
+        }
+    }
+    
+    const handleModal = (title, content) => {
+        setModalData({
+            title, content
+        })
+        setShowModal(true)
     }
 
     useEffect(() => {
@@ -142,6 +174,16 @@ export default function Tasks() {
 
     return (
         <div className="flex flex-col h-full">
+            {/* Modal */}
+            {/* Will be hardcoding handleDelete temporarily */}
+            <Modal
+                title={modalData.title}
+                content={modalData.content}
+                display={showModal}
+                onConfirm={handeDelete}
+                onCancel={() => setShowModal(false)}
+            />
+
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-5">
                 <button
@@ -156,31 +198,40 @@ export default function Tasks() {
                     <div className="relative inline-flex items-center bg-input border border-divider rounded-lg p-1">
                         <div
                             className="absolute top-1 bottom-1 rounded-md bg-brand transition-all duration-200 ease-out"
-                            style={{ width: "calc(50% - 4px)", left: mode === "view" ? "4px" : "50%" }}
+                            style={{ width: "calc(33.3% - 4px)", left: mode === "view" ? "4px" : "32%" }}
                         />
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setMode('view')}
-                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                                mode === 'view' ? 'text-main' : 'text-secondary hover:text-primary'
-                            }`}
+                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${mode === 'view' ? 'text-main' : 'text-secondary hover:text-primary'
+                                }`}
                         >
                             View
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
                             onClick={() => setMode('edit')}
-                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                                mode === 'edit' ? 'text-main' : 'text-secondary hover:text-primary'
-                            }`}
+                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${mode === 'edit' ? 'text-main' : 'text-secondary hover:text-primary'
+                                }`}
                         >
                             Edit
-                        </button>
+                        </Button>
+
+                        <Button
+                            type="button"
+                            onClick={() => handleModal(
+                                'Delete Task',
+                                'Are you sure you want to delete this task?'
+                            )}
+                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer text-red-400 hover:text-red-800`}
+                        >
+                            Delete
+                        </Button>
                     </div>
 
                     {mode === 'edit' && (
                         <FadeIn key="save-button" className="inline-block">
-                            <button
+                            <Button
                                 type="button"
                                 onClick={handleSaveTask}
                                 disabled={isSaving || !canSave}
@@ -188,9 +239,10 @@ export default function Tasks() {
                                 className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand text-main hover:brightness-110 active:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {isSaving ? 'Saving…' : 'Save'}
-                            </button>
+                            </Button>
                         </FadeIn>
                     )}
+
                 </div>
             </div>
 
