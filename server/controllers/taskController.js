@@ -6,7 +6,9 @@ const redisClient = require('../config/redis')
 // Controller to post raw markdown task to the database
 exports.createTask = async (req, res) => {
     try {
+        const { id } = req.user;
         const { title, content, status } = req.body;
+        const taskCacheKey = `task: ${id}`
 
         if (!title || !status)
             return res.status(400).json({ message: "Title and status should not be empty" })
@@ -17,6 +19,8 @@ exports.createTask = async (req, res) => {
             status,
             createdBy: req.user.id
         })
+
+        await redisClient.del(taskCacheKey)
 
         return res.status(201).json({
             _id: newTask._id,
