@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { createAccount, loginAccount, logoutAccount, googleLogin, getMyInfo, verifyAccount, forgotPassUrl, forgotPass } = require('../controllers/accountController')
+const authToken = require('../config/authentication')
+const { createAccount, loginAccount, logoutAccount, googleLogin, getUser, verifyAccount, forgotPassUrl, forgotPass, getMe } = require('../controllers/accountController')
 
 router.post("/create", createAccount);
 router.post("/login", loginAccount);
@@ -11,6 +12,7 @@ router.post("/verify", verifyAccount)
 router.post("/forgotPass", forgotPassUrl)
 router.post("/newPass", forgotPass)
 
-router.get("/get", getMyInfo)
+router.get("/get/:info", getUser)
+router.get('/me', authToken, getMe);
 
 module.exports = router

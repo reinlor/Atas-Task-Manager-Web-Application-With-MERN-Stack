@@ -12,6 +12,7 @@ const cookieParser = require('cookie-parser')
 
 const accountRoute = require('./routes/accountRoute');
 const taskRoute = require('./routes/taskRoute')
+const teamRoute = require('./routes/teamRoute')
 const geminiRoute = require('./routes/geminiRoute')
 
 const authToken = require('./config/authentication')
@@ -32,6 +33,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api/account", accountRoute);
 app.use("/api/task", authToken, taskRoute);
+app.use("/api/team", authToken, teamRoute);
 app.use("/api/ai", geminiRoute)
 
 // MongoDB Connection

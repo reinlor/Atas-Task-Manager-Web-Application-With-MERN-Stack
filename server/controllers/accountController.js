@@ -274,13 +274,48 @@ exports.forgotPass = async (req, res) => {
     }
 }
 
-// TODO: delete this before production. This is a sample controller to get account data for authentication testing will soon be deleted
-exports.getMyInfo = async (req, res) => {
+// Controller to find user(s)
+const mongoose = require('mongoose');
+
+// Controller to find user(s) by username, email, or exact id
+exports.getUser = async (req, res) => {
     try {
-        const myId = req.user.id
-        const user = await account.findById(myId)
-        return res.status(200).send(user);
+        const { info } = req.params;
+
+        if (!info || info.trim() === '') {
+            return res.status(400).json({ message: "Search parameter is required" });
+        }
+
+        const queryConditions = [
+            { username: { $regex: info, $options: 'i' } },
+            { email: { $regex: info, $options: 'i' } }
+        ];
+
+        if (mongoose.Types.ObjectId.isValid(info)) {
+            queryConditions.push({ _id: info });
+        }
+
+        const users = await account.find({
+            $or: queryConditions
+        })
+        .select('_id username email')
+        .limit(10);
+
+        return res.status(200).json({
+            count: users.length,
+            users
+        });
     } catch (err) {
-        return res.status(500).json({ message: "Server Error", error: err.message })
+        return res.status(500).json({ message: "Server Error", error: err.message });
     }
-}
+};
+
+exports.getMe = async (req, res) => {
+    try {
+        const me = await account.findById(req.user.id).select('_id username email');
+        if (!me) return res.status(404).json({ message: 'User not found' });
+        return res.status(200).json(me);
+    } catch (error) {
+        return res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+};

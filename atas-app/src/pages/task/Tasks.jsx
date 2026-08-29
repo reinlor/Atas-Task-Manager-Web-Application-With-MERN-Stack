@@ -13,6 +13,7 @@ import { ChevronDownIcon } from "../../component/Icons";
 import { useTaskEditor } from "../../context/TaskEditorContext";
 import Button from "../../component/Button";
 import Modal from "../../component/Modal";
+import TaskModal from "../../component/TaskModal";
 
 const MARKDOWN_TYPOGRAPHY = `
     [&_h1]:text-h1 [&_h1]:font-semibold [&_h1]:mb-2 [&_h1]:mt-1
@@ -198,7 +199,7 @@ export default function Tasks() {
                     <div className="relative inline-flex items-center bg-input border border-divider rounded-lg p-1">
                         <div
                             className="absolute top-1 bottom-1 rounded-md bg-brand transition-all duration-200 ease-out"
-                            style={{ width: "calc(33.3% - 4px)", left: mode === "view" ? "4px" : "32%" }}
+                            style={{ width: "calc(33.3% - 4px)", left: mode === "view" ? "4px" : "33.3%" }}
                         />
                         <Button
                             type="button"
@@ -223,9 +224,9 @@ export default function Tasks() {
                                 'Delete Task',
                                 'Are you sure you want to delete this task?'
                             )}
-                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer text-red-400 hover:text-red-800`}
+                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer text-mauve-500 hover:text-mauve-300`}
                         >
-                            Delete
+                            More
                         </Button>
                     </div>
 
