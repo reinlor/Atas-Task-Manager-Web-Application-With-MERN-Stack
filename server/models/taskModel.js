@@ -20,6 +20,11 @@ const taskSchema = new mongoose.Schema({
         ref: 'user',
         required: true
     },
+    team: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Team',
+        default: null
+    },
     created: { type: Date, default: Date.now },
     update: { type: Date }
 })

@@ -1,5 +1,3 @@
-// TODO: Modify flow of how modal is being used
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -12,11 +10,10 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import remarkGithubAlerts from 'remark-github-alerts';
 
 import axios from "axios";
 import { toast } from "react-toastify";
-import { ChevronDownIcon } from "../../component/Icons";
+import { ChevronDownIcon, MoreIcon } from "../../component/Icons";
 import { useTaskEditor } from "../../context/TaskEditorContext";
 import Button from "../../component/Button";
 import Modal from "../../component/Modal";
@@ -52,7 +49,7 @@ const MARKDOWN_TYPOGRAPHY = `
     [&_td]:border [&_td]:border-divider [&_td]:px-2 [&_td]:py-1
 
     [&_.math-display]:my-4 [&_.math-display]:overflow-x-auto
-    `
+`;
 
 const STATUS_STYLES = {
     "Pending": { dot: "bg-accent-color", text: "text-secondary" },
@@ -85,14 +82,19 @@ export default function Tasks() {
     const [title, setTitle] = useState("");
     const [markdown, setMarkdown] = useState("");
     const [status, setStatus] = useState("Pending");
+    
+    const [team, setTeam] = useState(null);
+    const [isOwner, setIsOwner] = useState(true);
+    const [canEdit, setCanEdit] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [mode, setMode] = useState(searchParams.get("new") === "true" ? "edit" : "view");
-    const [showModal, setShowModal] = useState(false)
-    const [modalData, setModalData] = useState({
-        title: '',
-        content: ''
-    })
+
+    // Delete confirmation
+    const [showConfirmModal, setShowConfirmModal] = useState(false)
+    const [confirmModalData, setConfirmModalData] = useState({ title: '', content: '' })
+
+    const [showTaskModal, setShowTaskModal] = useState(false)
 
     const canSave = (title ?? "").trim().length > 0;
 
@@ -115,7 +117,7 @@ export default function Tasks() {
         }
     }
 
-    const handeDelete = async () => {
+    const handleDelete = async () => {
         try {
             const response = await axios.delete(
                 `${import.meta.env.VITE_API_BASE_URL}/api/task/delete/${taskId}`,
@@ -126,17 +128,29 @@ export default function Tasks() {
                 navigate('/task')
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Update failed.')
+            toast.error(err.response?.data?.message || 'Delete failed.')
         } finally {
-            setShowModal(false)
+            setShowConfirmModal(false)
         }
     }
 
-    const handleModal = (title, content) => {
-        setModalData({
-            title, content
-        })
-        setShowModal(true)
+    const handleConfirmModal = (title, content) => {
+        setConfirmModalData({ title, content })
+        setShowConfirmModal(true)
+    }
+
+    const handleShareTask = async (teamId) => {
+        try {
+            const response = await axios.patch(
+                `${import.meta.env.VITE_API_BASE_URL}/api/task/update/${taskId}`,
+                { team: teamId },
+                { withCredentials: true }
+            )
+            setTeam(response.data.task?.team ?? null)
+            toast.success(teamId ? 'Task shared' : 'Sharing stopped')
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Could not update sharing.')
+        }
     }
 
     useEffect(() => {
@@ -150,6 +164,9 @@ export default function Tasks() {
                 setTitle(response.data.title)
                 setMarkdown(response.data.content)
                 setStatus(response.data.status)
+                setTeam(response.data.team ?? null)
+                setIsOwner(Boolean(response.data.isOwner))
+                setCanEdit(Boolean(response.data.canEdit))
             } catch (err) {
                 toast.error(err.response?.data?.message || 'Failed to load task.')
             } finally {
@@ -158,6 +175,10 @@ export default function Tasks() {
         }
         fetchTask();
     }, [taskId])
+
+    useEffect(() => {
+        if (!isLoading && !canEdit && mode === 'edit') setMode('view');
+    }, [isLoading, canEdit, mode]);
 
     useEffect(() => {
         if (isLoading) return;
@@ -173,98 +194,110 @@ export default function Tasks() {
         return <p className="text-secondary text-sm">Loading task…</p>;
     }
 
-    const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.Pending;
-
     const sanitizeOptions = {
-        ...defaultSchema,
-        attributes: {
-            ...defaultSchema.attributes,
-            div: [
-                ...(defaultSchema.attributes?.div || []),
-                ['className', 'math', 'math-display', /^markdown-alert.*/]
-            ],
-            p: [
-                ...(defaultSchema.attributes?.p || []),
-                ['className', /^markdown-alert.*/]
-            ],
-            span: [
-                ...(defaultSchema.attributes?.span || []),
-                ['className', 'math', 'math-inline', 'katex', 'katex-display', 'katex-html', 'katex-mathml', /^markdown-alert.*/]
-            ],
-        },
-    };
+    ...defaultSchema,
+    attributes: {
+        ...defaultSchema.attributes,
+        div: [...(defaultSchema.attributes?.div || []), ['className', 'math', 'math-display']],
+        span: [...(defaultSchema.attributes?.span || []), ['className', 'math', 'math-inline', 'katex', 'katex-mathml', 'katex-html']],
+    },
+};
+
+    const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.Pending;
 
     return (
         <div className="flex flex-col h-full">
-            {/* Modal */}
-            {/* Will be hardcoding handleDelete temporarily */}
             <Modal
-                title={modalData.title}
-                content={modalData.content}
-                display={showModal}
-                onConfirm={handeDelete}
-                onCancel={() => setShowModal(false)}
+                title={confirmModalData.title}
+                content={confirmModalData.content}
+                display={showConfirmModal}
+                onConfirm={handleDelete}
+                onCancel={() => setShowConfirmModal(false)}
+            />
+
+            <TaskModal
+                display={showTaskModal}
+                onClose={() => setShowTaskModal(false)}
+                isOwner={isOwner}
+                currentTeamId={team}
+                onShare={handleShareTask}
+                onUnshare={() => handleShareTask(null)}
+                onDeleteRequest={() => handleConfirmModal(
+                    'Delete task',
+                    `Are you sure you want to delete "${title}"? This can't be undone.`
+                )}
             />
 
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-5">
-                <button
-                    type="button"
-                    onClick={() => navigate('/task')}
-                    className="text-sm text-secondary hover:text-primary transition-colors cursor-pointer"
-                >
-                    ← Back to tasks
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/task')}
+                        className="text-sm text-secondary hover:text-primary transition-colors cursor-pointer"
+                    >
+                        ← Back to tasks
+                    </button>
+                    {!isOwner && (
+                        <span className="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/30">
+                            Shared
+                        </span>
+                    )}
+                </div>
 
                 <div className="flex items-center gap-3">
                     <div className="relative inline-flex items-center bg-input border border-divider rounded-lg p-1">
                         <div
                             className="absolute top-1 bottom-1 rounded-md bg-brand transition-all duration-200 ease-out"
-                            style={{ width: "calc(33.3% - 4px)", left: mode === "view" ? "4px" : "33.3%" }}
+                            style={{
+                                width: canEdit ? "calc(50% - 4px)" : "calc(100% - 8px)",
+                                left: mode === "view" ? "4px" : "50%",
+                            }}
                         />
-                        <Button
+                        <button
                             type="button"
                             onClick={() => setMode('view')}
                             className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${mode === 'view' ? 'text-main' : 'text-secondary hover:text-primary'
                                 }`}
                         >
                             View
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => setMode('edit')}
-                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${mode === 'edit' ? 'text-main' : 'text-secondary hover:text-primary'
-                                }`}
-                        >
-                            Edit
-                        </Button>
-
-                        <Button
-                            type="button"
-                            onClick={() => handleModal(
-                                'Delete Task',
-                                'Are you sure you want to delete this task?'
-                            )}
-                            className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer text-mauve-500 hover:text-mauve-300`}
-                        >
-                            More
-                        </Button>
+                        </button>
+                        {canEdit && (
+                            <button
+                                type="button"
+                                onClick={() => setMode('edit')}
+                                className={`relative z-10 px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${mode === 'edit' ? 'text-main' : 'text-secondary hover:text-primary'
+                                    }`}
+                            >
+                                Edit
+                            </button>
+                        )}
                     </div>
 
-                    {mode === 'edit' && (
+                    {isOwner && (
+                        <button
+                            type="button"
+                            onClick={() => setShowTaskModal(true)}
+                            aria-label="More actions"
+                            className="w-9 h-9 rounded-lg border border-divider text-secondary hover:text-primary hover:bg-main transition-colors cursor-pointer flex items-center justify-center"
+                        >
+                            <MoreIcon className="w-4 h-4" />
+                        </button>
+                    )}
+
+                    {mode === 'edit' && canEdit && (
                         <FadeIn key="save-button" className="inline-block">
                             <Button
                                 type="button"
                                 onClick={handleSaveTask}
                                 disabled={isSaving || !canSave}
                                 title={!canSave ? 'Title is required' : undefined}
-                                className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand text-main hover:brightness-110 active:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                cstyle="px-4 py-2 rounded-lg text-sm font-semibold bg-brand text-main hover:brightness-110 active:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {isSaving ? 'Saving…' : 'Save'}
                             </Button>
                         </FadeIn>
                     )}
-
                 </div>
             </div>
 
@@ -335,14 +368,14 @@ export default function Tasks() {
                             </p>
                             <div className={`flex-1 overflow-y-auto p-4 text-primary text-sm ${MARKDOWN_TYPOGRAPHY}`}>
                                 <Markdown
-                                    remarkPlugins={[[
-                                        remarkGfm, { singleTilde: false }],
-                                        remarkMath
-                                    ]}
-                                    rehypePlugins={[
-                                        rehypeHighlight,
-                                        [rehypeSanitize, sanitizeOptions],
-                                        rehypeKatex]}>
+                            remarkPlugins={[[
+                                remarkGfm, { singleTilde: false }],
+                                remarkMath
+                            ]}
+                            rehypePlugins={[
+                                rehypeHighlight,
+                                [rehypeSanitize, sanitizeOptions],
+                                rehypeKatex]}>
                                     {markdown}
                                 </Markdown>
                             </div>

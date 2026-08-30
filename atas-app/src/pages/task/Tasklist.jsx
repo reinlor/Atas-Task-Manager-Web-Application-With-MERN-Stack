@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-import TaskCard from "../../component/TaskCard";
+import TaskCard from "../../component/Taskcard"
 import { TaskIcon } from "../../component/Icons";
 
 export default function TaskList() {
