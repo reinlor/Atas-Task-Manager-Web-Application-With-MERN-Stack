@@ -5,7 +5,7 @@ import { DashboardIcon, TaskIcon, ClockIcon, TeamIcon, LogoutIcon } from "../com
 const NAV_ITEMS = [
     { label: "Dashboard", path: "/dashboard", icon: DashboardIcon },
     { label: "Tasks", path: "/task", icon: TaskIcon },
-    { label: "Timetable", path: "/timetable", icon: ClockIcon },
+    { label: "Log", path: "/log", icon: ClockIcon },
     { label: "Team", path: "/team", icon: TeamIcon },
 ];
 

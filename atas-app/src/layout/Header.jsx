@@ -1,10 +1,10 @@
 import { useLocation } from "react-router-dom";
-import { BellIcon } from "../component/Icons";
+import NotificationBell from "../component/NotificationBell";
 
 const PAGE_TITLES = [
     { match: (path) => path === "/dashboard", title: "Dashboard" },
     { match: (path) => path.startsWith("/task"), title: "Tasks" },
-    { match: (path) => path === "/timetable", title: "Timetable" },
+    { match: (path) => path === "/log", title: "Log" },
     { match: (path) => path === "/team", title: "Team" },
 ];
 
@@ -17,14 +17,8 @@ function Header() {
             <h1 className="text-lg font-semibold text-primary">{title}</h1>
  
             <div className="flex items-center gap-4">
-                <button
-                    type="button"
-                    aria-label="Notifications"
-                    className="text-secondary hover:text-primary transition-colors cursor-pointer"
-                >
-                    <BellIcon className="w-5 h-5" />
-                </button>
- 
+                <NotificationBell />
+
                 <div className="w-8 h-8 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center text-xs font-medium text-brand">
                     RL
                 </div>

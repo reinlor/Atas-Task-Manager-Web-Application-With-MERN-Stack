@@ -8,7 +8,7 @@ import Login from './pages/login/Login';
 import Dashboard from './pages/Dashboard';
 import TaskList from './pages/task/Tasklist';
 import Tasks from './pages/task/Tasks';
-import Timetable from './pages/Timetable';
+import Log from './pages/Log';
 import Team from './pages/Team';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPass from './pages/ForgotPass';
@@ -52,7 +52,7 @@ function App() {
             <Route path='/dashboard' element={<Dashboard />} />
             <Route path="/task" element={<TaskList />} />
             <Route path="/task/:taskId" element={<Tasks />} />
-            <Route path='/timetable' element={<Timetable />} />
+            <Route path='/log' element={<Log />} />
             <Route path='/team' element={<Team />} />
           </Route>
         </Routes>
