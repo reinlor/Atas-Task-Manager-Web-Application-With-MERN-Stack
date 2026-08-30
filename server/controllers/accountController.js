@@ -83,6 +83,7 @@ exports.createAccount = async (req, res) => {
 // Controller to Login user account
 exports.loginAccount = async (req, res) => {
     const { email, password } = req.body;
+    const isProduction = process.env.NODE_ENV === 'production';
 
     try {
         const myaccount = await account.findOne({ email });
@@ -100,11 +101,10 @@ exports.loginAccount = async (req, res) => {
         }
 
         const token = generateToken(myaccount._id);
-
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 30 * 24 * 60 * 60 * 1000
         });
 

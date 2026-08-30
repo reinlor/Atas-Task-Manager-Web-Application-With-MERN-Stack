@@ -2,11 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+
+// Markdown Imports
 import Markdown from "react-markdown";
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github-dark.css';
-import rehypeSanitize from 'rehype-sanitize';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+import remarkGithubAlerts from 'remark-github-alerts';
+
 import axios from "axios";
 import { toast } from "react-toastify";
 import { ChevronDownIcon } from "../../component/Icons";
@@ -43,7 +50,9 @@ const MARKDOWN_TYPOGRAPHY = `
     [&_table]:w-full [&_table]:text-sm [&_table]:mb-3
     [&_th]:border [&_th]:border-divider [&_th]:px-2 [&_th]:py-1 [&_th]:text-left
     [&_td]:border [&_td]:border-divider [&_td]:px-2 [&_td]:py-1
-`;
+
+    [&_.math-display]:my-4 [&_.math-display]:overflow-x-auto
+    `
 
 const STATUS_STYLES = {
     "Pending": { dot: "bg-accent-color", text: "text-secondary" },
@@ -122,7 +131,7 @@ export default function Tasks() {
             setShowModal(false)
         }
     }
-    
+
     const handleModal = (title, content) => {
         setModalData({
             title, content
@@ -150,13 +159,6 @@ export default function Tasks() {
         fetchTask();
     }, [taskId])
 
-    // Register with the shared context so Aichat can read this task's current
-    // content (getSnapshot) and write a new version into this same editor
-    // state (applyContent) when the user applies an AI-suggested diff — all
-    // without either component needing to import or know about the other's
-    // internals. Cleanup on unmount matters: if this ran without it, the
-    // chat widget could keep applying changes to a task that isn't open
-    // anymore after you've navigated away.
     useEffect(() => {
         if (isLoading) return;
         registerActiveTask({
@@ -172,6 +174,25 @@ export default function Tasks() {
     }
 
     const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.Pending;
+
+    const sanitizeOptions = {
+        ...defaultSchema,
+        attributes: {
+            ...defaultSchema.attributes,
+            div: [
+                ...(defaultSchema.attributes?.div || []),
+                ['className', 'math', 'math-display', /^markdown-alert.*/]
+            ],
+            p: [
+                ...(defaultSchema.attributes?.p || []),
+                ['className', /^markdown-alert.*/]
+            ],
+            span: [
+                ...(defaultSchema.attributes?.span || []),
+                ['className', 'math', 'math-inline', 'katex', 'katex-display', 'katex-html', 'katex-mathml', /^markdown-alert.*/]
+            ],
+        },
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -258,8 +279,14 @@ export default function Tasks() {
                     </div>
                     <div className={`text-primary text-base ${MARKDOWN_TYPOGRAPHY}`}>
                         <Markdown
-                            remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
-                            rehypePlugins={[rehypeHighlight, rehypeSanitize]}>
+                            remarkPlugins={[[
+                                remarkGfm, { singleTilde: false }],
+                                remarkMath
+                            ]}
+                            rehypePlugins={[
+                                rehypeHighlight,
+                                [rehypeSanitize, sanitizeOptions],
+                                rehypeKatex]}>
                             {markdown}
                         </Markdown>
                     </div>
@@ -308,8 +335,14 @@ export default function Tasks() {
                             </p>
                             <div className={`flex-1 overflow-y-auto p-4 text-primary text-sm ${MARKDOWN_TYPOGRAPHY}`}>
                                 <Markdown
-                                    remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
-                                    rehypePlugins={[rehypeHighlight, rehypeSanitize]}>
+                                    remarkPlugins={[[
+                                        remarkGfm, { singleTilde: false }],
+                                        remarkMath
+                                    ]}
+                                    rehypePlugins={[
+                                        rehypeHighlight,
+                                        [rehypeSanitize, sanitizeOptions],
+                                        rehypeKatex]}>
                                     {markdown}
                                 </Markdown>
                             </div>

@@ -19,7 +19,8 @@ export default function TaskList() {
                 );
                 setTasks(response.data.tasks ?? response.data);
             } catch (err) {
-                toast.error(err.response?.data?.message || "Failed to load tasks.");
+                if(err.status !== 404) 
+                    toast.error(err.response?.data?.message || "Failed to load tasks.");
             } finally {
                 setIsLoading(false);
             }
