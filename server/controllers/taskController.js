@@ -1,8 +1,15 @@
 const task = require('../models/taskModel')
 const Team = require('../models/teamModel')
+const Account = require('../models/accountModel')
 const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
 const redisClient = require('../config/redis')
+const { createAndEmitNotification } = require('../services/notificationService');
+
+const truncate = (str, maxLength = 20) => {
+    if (!str) return '';
+    return str.length > maxLength ? `${str.substring(0, maxLength)}...` : str;
+};
 
 // Controller to post raw markdown task to the database
 exports.createTask = async (req, res) => {
@@ -33,11 +40,6 @@ exports.createTask = async (req, res) => {
     }
 }
 
-// Works out whether `userId` can edit `taskDoc`, and whether they're its
-// creator. Shared with both updateTask (to actually enforce it) and
-// getTaskById (to tell the client whether to show edit controls at all).
-// Kept as one function so those two can never quietly disagree with each
-// other about who's allowed to do what.
 async function resolveTaskPermissions(taskDoc, userId) {
     const isOwner = taskDoc.createdBy.toString() === userId;
     if (isOwner) return { isOwner: true, canEdit: true, hasAccess: true };
@@ -67,36 +69,103 @@ exports.updateTask = async (req, res) => {
         const { id: taskId } = req.params;
         const updates = req.body;
 
-        const cacheKey = `tasklist:${taskId}`
-
         const currentTask = await task.findById(taskId);
         if (!currentTask) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        // This is the fix for a real gap in the previous version: it read
-        // `const { id } = req.params` (the TASK's id) and never touched
-        // `req.user` at all, so there was no ownership check whatsoever —
-        // any authenticated request could PATCH any task by id. Now, before
-        // touching any fields, work out whether this user is even allowed to.
         const { isOwner, canEdit } = await resolveTaskPermissions(currentTask, userId);
         if (!canEdit) {
             return res.status(403).json({ message: 'You do not have permission to edit this task' });
         }
 
-        // Only the creator can change WHO a task is shared with — a shared
-        // Editor can edit content, but re-sharing or un-sharing someone
-        // else's task isn't theirs to decide.
         if (!isOwner && Object.prototype.hasOwnProperty.call(updates, 'team')) {
             return res.status(403).json({ message: 'Only the task creator can change sharing' });
         }
 
-        const changes = {};
+        const initialTeamId = currentTask.team ? currentTask.team.toString() : null;
+
+        // Apply updates and save
+        Object.assign(currentTask, updates);
+        const updatedTask = await currentTask.save();
+
+        const newTeamId = updatedTask.team ? updatedTask.team.toString() : null;
+
+        // Check if team exist
+        if (newTeamId) {
+            const actor = await Account.findById(userId).select('username');
+            const actorName = truncate(actor?.username || 'Someone', 15);
+            const taskTitle = truncate(updatedTask.title, 20);
+
+            // task was newly shared with a Team
+            if (!initialTeamId) {
+                const teamDoc = await Team.findById(newTeamId);
+                if (teamDoc) {
+                    const recipients = new Set();
+
+                    if (teamDoc.owner.toString() !== userId.toString()) {
+                        recipients.add(teamDoc.owner.toString());
+                    }
+
+                    teamDoc.members.forEach((m) => {
+                        const memberId = m.user.toString();
+                        if (memberId !== userId.toString()) {
+                            recipients.add(memberId);
+                        }
+                    });
+
+                    for (const recipientId of recipients) {
+                        await createAndEmitNotification({
+                            userId: recipientId,
+                            type: 'share',
+                            text: `${actorName} shared "${taskTitle}" with you`
+                        });
+                    }
+                }
+            }
+
+            // General Task Update
+            else {
+                const teamDoc = await Team.findById(newTeamId);
+                if (teamDoc) {
+                    const recipients = new Set();
+
+                    // Add task creator if they didn't make the edit
+                    if (updatedTask.createdBy.toString() !== userId.toString()) {
+                        recipients.add(updatedTask.createdBy.toString());
+                    }
+
+                    // Add team owner if they didn't make the edit
+                    if (teamDoc.owner.toString() !== userId.toString()) {
+                        recipients.add(teamDoc.owner.toString());
+                    }
+
+                    // Add team members except the editor
+                    teamDoc.members.forEach((m) => {
+                        const memberId = m.user.toString();
+                        if (memberId !== userId.toString()) {
+                            recipients.add(memberId);
+                        }
+                    });
+
+                    for (const recipientId of recipients) {
+                        await createAndEmitNotification({
+                            userId: recipientId,
+                            type: 'update',
+                            text: `${actorName} updated "${taskTitle}"`
+                        });
+                    }
+                }
+            }
+        }
+
+        // Clear Redis caches
+        await redisClient.del(`task:${userId}`);
+        await redisClient.del(`tasklist:${taskId}`);
 
         res.status(200).json({
             message: 'Task updated successfully',
-            changes,
-            task: currentTask
+            task: updatedTask
         });
 
     } catch (error) {
@@ -109,16 +178,14 @@ exports.getTask = async (req, res) => {
     try {
         const { id } = req.user;
 
-        // Check if it is a valid MongoDB id
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ message: 'Invalid task ID format' });
         }
 
-        // Checking if cache exists 😏
         const cacheKey = `task:${id}`
         const cachedTask = await redisClient.get(cacheKey)
         if (cachedTask) {
-            console.log('Retrieve using cache'); // TODO: remove log before deployment
+            console.log('Retrieve using cache');
             return res.status(200).json(
                 JSON.parse(cachedTask)
             )
@@ -136,16 +203,13 @@ exports.getTask = async (req, res) => {
             ]
         });
 
-        // If task not found
         if (!myTask || myTask.length === 0) {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        // Store on redis cache
-        await redisClient.set(cacheKey, JSON.stringify(myTask), { EX: 60 }) //TODO: Change 60 to much longer before deployment
+        await redisClient.set(cacheKey, JSON.stringify(myTask), { EX: 60 })
 
-        // If task exist
-        console.log('retrieve directly from database') // TODO: remove log before deployment
+        console.log('retrieve directly from database')
         res.status(200).json(myTask);
 
     } catch (error) {
@@ -166,11 +230,10 @@ exports.getTaskById = async (req, res) => {
             return res.status(400).json({ message: 'Invalid task ID format' });
         }
 
-        // Checking if cache exists 😏
         const cacheKey = `tasklist:${pageId}`
         const cachedTask = await redisClient.get(cacheKey)
         if (cachedTask) {
-            console.log('Retrieve using cache'); // TODO: remove log before deployment
+            console.log('Retrieve using cache');
             return res.status(200).json(
                 JSON.parse(cachedTask)
             )
@@ -189,10 +252,9 @@ exports.getTaskById = async (req, res) => {
 
         const responseBody = { ...myTask.toObject(), isOwner, canEdit };
 
-        // Store on redis cache
-        await redisClient.set(cacheKey, JSON.stringify(responseBody), { EX: 60 }) //TODO: Change 60 to much longer before deployment
+        await redisClient.set(cacheKey, JSON.stringify(responseBody), { EX: 60 })
 
-        console.log('retrieve directly from database') // TODO: remove log before deployment
+        console.log('retrieve directly from database')
         res.status(200).json(responseBody);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -222,4 +284,4 @@ exports.deleteTask = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }
-}
+}   

@@ -1,5 +1,11 @@
 const Team = require('../models/teamModel');
 const redisClient = require('../config/redis');
+const { createAndEmitNotification } = require('../services/notificationService');
+
+const truncate = (str, maxLength = 20) => {
+    if (!str) return '';
+    return str.length > maxLength ? `${str.substring(0, maxLength)}...` : str;
+};
 
 // Controller function to create a team
 exports.createTeam = async (req, res) => {
@@ -18,6 +24,20 @@ exports.createTeam = async (req, res) => {
         const populatedTeam = await Team.findById(savedTeam._id)
             .populate('owner', 'username email')
             .populate('members.user', 'username email'); 
+        
+        const teamName = truncate(name, 20);
+        if (members && Array.isArray(members)) {
+            for (const member of members) {
+                const memberId = member.user.toString();
+                if (memberId !== id.toString()) {
+                    await createAndEmitNotification({
+                        userId: memberId,
+                        type: 'invite',
+                        text: `You were added to "${teamName}"`
+                    });
+                }
+            }
+        }
 
         return res.status(201).json({ 
             message: 'Team created successfully', 
@@ -65,15 +85,46 @@ exports.updateTeam = async (req, res) => {
             return res.status(403).json({ message: 'Unauthorized: Only the team owner can update this team' });
         }
 
-        if (name) team.name = name;
-        if (members) team.members = members; // Fixed: changed collaborators to members
+        const existingMemberMap = new Map(
+            team.members.map((m) => [m.user.toString(), m.role])
+        );
 
-        // Fixed: called .save() on the document instance instead of the Team model directly
+        if (name) team.name = name;
+        if (members) team.members = members;
+
         const updatedTeam = await team.save();
 
         const populatedTeam = await Team.findById(updatedTeam._id)
             .populate('owner', 'username email')
-            .populate('members.user', 'username email'); // Fixed: changed collaborators to members
+            .populate('members.user', 'username email');
+
+        const teamName = truncate(team.name, 20);
+            
+        // Notify members additions and role changes
+        if (members && Array.isArray(members)) {
+            for (const m of members) {
+                const memberId = m.user.toString();
+                if (memberId === userId.toString()) continue; // Skip owner
+
+                const previousRole = existingMemberMap.get(memberId);
+
+                if (!previousRole) {
+                    // newlu added member
+                    await createAndEmitNotification({
+                        userId: memberId,
+                        type: 'invite',
+                        text: `You were added to "${teamName}"`
+                    });
+                } else if (previousRole !== m.role) {
+                    // member role changed by owner
+                    await createAndEmitNotification({
+                        userId: memberId,
+                        type: 'role',
+                        text: `Your role on "${teamName}" was changed to ${m.role}`
+                    });
+                }
+            }
+        }
 
         return res.status(200).json({
             message: 'Team updated successfully',
@@ -92,11 +143,11 @@ exports.getUserTeams = async (req, res) => {
         const teams = await Team.find({
             $or: [
                 { owner: userId },
-                { 'members.user': userId } // Fixed: changed collaborators to members
+                { 'members.user': userId }
             ]
         })
         .populate('owner', 'username email')
-        .populate('members.user', 'username email') // Fixed: changed collaborators to members
+        .populate('members.user', 'username email')
         .sort({ createdAt: -1 });
 
         return res.status(200).json({
