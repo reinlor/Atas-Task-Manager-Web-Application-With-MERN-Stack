@@ -4,7 +4,10 @@ const Account = require('../models/accountModel')
 const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
 const redisClient = require('../config/redis')
+
+// services
 const { createAndEmitNotification } = require('../services/notificationService');
+const { createOrUpdateEmitDashboard } = require('../services/dashboardService');
 
 const truncate = (str, maxLength = 20) => {
     if (!str) return '';
@@ -28,6 +31,19 @@ exports.createTask = async (req, res) => {
             createdBy: req.user.id
         })
 
+        // FIXME: Update core logic of createOrUpdateEmitDashboard
+        await createOrUpdateEmitDashboard(
+            {
+                userId: id,
+                recentTask: {
+                    title: newTask.title,
+                    status: newTask.status,
+                },
+                stats: {
+                    inProgress: 1
+                }
+            }
+        )
         await redisClient.del(taskCacheKey)
 
         return res.status(201).json({
@@ -36,6 +52,7 @@ exports.createTask = async (req, res) => {
             status: newTask.status
         })
     } catch (error) {
+        console.log(error.message)
         return res.status(500).json({ message: "Server Error", error: error.message })
     }
 }

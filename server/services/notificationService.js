@@ -1,5 +1,5 @@
-const Notification = require('../models/notificationModel'); //[cite: 3]
-const { getIO } = require('../config/socket'); //[cite: 2]
+const Notification = require('../models/notificationModel');
+const { getIO } = require('../config/socket'); 
 
 exports.createAndEmitNotification = async ({ userId, type, text }) => {
   try {
