@@ -310,7 +310,7 @@ export default function Tasks() {
                             {status}
                         </span>
                     </div>
-                    <div className={`text-primary text-base ${MARKDOWN_TYPOGRAPHY}`}>
+                    <div className={`whitespace-pre-wrap wrap-break-word text-primary text-base ${MARKDOWN_TYPOGRAPHY}`}>
                         <Markdown
                             remarkPlugins={[[
                                 remarkGfm, { singleTilde: false }],
@@ -366,7 +366,7 @@ export default function Tasks() {
                             <p className="px-4 py-2 text-[11px] uppercase tracking-widest text-accent-color border-b border-divider">
                                 Preview
                             </p>
-                            <div className={`flex-1 overflow-y-auto p-4 text-primary text-sm ${MARKDOWN_TYPOGRAPHY}`}>
+                            <div className={`whitespace-pre-wrap wrap-break-word flex-1 overflow-y-auto p-4 text-primary text-sm ${MARKDOWN_TYPOGRAPHY}`}>
                                 <Markdown
                             remarkPlugins={[[
                                 remarkGfm, { singleTilde: false }],
