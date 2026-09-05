@@ -12,9 +12,6 @@ import AuthLayout from "./AuthLayout";
 import ForgotForm from "./ForgotForm";
 import RegisterForm from "./RegisterForm";
 
-// Copy for each screen lives in one place, keyed by the same activeForm value
-// that already drives handleFormChange — so title/subtitle can never drift out
-// of sync with which form is actually showing.
 const SCREEN_COPY = {
     login: { eyebrow: "Sign in", title: "Welcome back", subtitle: "Enter your credentials to continue." },
     register: { eyebrow: "Create account", title: "Join atas", subtitle: "Start planning with your team in minutes." },
@@ -228,6 +225,7 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                         <TextInput
                             isPassword={!showPass} id="password" name="password"
                             value={password}
+                            placeholder="Enter Password"
                             onChange={onChange}
                         />
                     </div>

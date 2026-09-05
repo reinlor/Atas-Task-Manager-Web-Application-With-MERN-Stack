@@ -50,8 +50,8 @@ function DiffView({ parts }) {
                             tone === "added"
                                 ? "bg-success/10 text-success"
                                 : tone === "removed"
-                                ? "bg-danger/10 text-danger line-through decoration-danger/50"
-                                : "text-secondary"
+                                    ? "bg-danger/10 text-danger line-through decoration-danger/50"
+                                    : "text-secondary"
                         }
                     >
                         <span className="select-none mr-2 text-accent-color">
@@ -121,11 +121,10 @@ function ChatBubble({ message, onUseSuggestion, onApplyDiff, onDiscardDiff }) {
 
     return (
         <div
-            className={`max-w-[85%] text-sm px-3 py-2 rounded-2xl ${
-                isUser
-                    ? "ml-auto bg-brand text-main rounded-br-sm"
-                    : "bg-[#161616] border border-divider text-primary rounded-bl-sm"
-            }`}
+            className={`max-w-[85%] text-sm px-3 py-2 rounded-2xl ${isUser
+                ? "ml-auto bg-brand text-main rounded-br-sm"
+                : "bg-[#161616] border border-divider text-primary rounded-bl-sm"
+                }`}
         >
             {message.text}
         </div>
@@ -139,6 +138,8 @@ export default function Aichat() {
     const [isThinking, setIsThinking] = useState(false);
     const bottomRef = useRef(null);
     const navigate = useNavigate();
+
+    const textareaRef = useRef(null);
 
     const { getActiveTask } = useTaskEditor();
 
@@ -161,6 +162,36 @@ export default function Aichat() {
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isThinking]);
+
+    // Logic for automatic resizing
+    useEffect(() => {
+        if (open && textareaRef.current) {
+            const timer = setTimeout(() => {
+                const textRef = textareaRef.current;
+                if (textRef) {
+                    textRef.style.height = "auto";
+
+                    textRef.style.height = `${textRef.scrollHeight}px`;
+                }
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [open]);
+    const handleInputChange = (e) => {
+        const textArea = e.target;
+        setInput(textArea.value);
+
+        // re-assign default val incase text revert or became shorter again
+        textArea.style.height = "auto";
+        textArea.style.overflowY = "hidden";
+
+        textArea.style.height = `${textArea.scrollHeight}px`;
+
+        // Scrollbar shows after exceedin client height
+        if (textArea.scrollHeight -2 > textArea.clientHeight) {
+            textArea.style.overflowY = "auto";
+        }
+    };
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -254,7 +285,7 @@ export default function Aichat() {
                 className={`mb-3 max-w-[calc(100vw-3rem)]  max-h-[70vh] origin-bottom-right
                     bg-input border border-divider rounded-2xl shadow-2xl shadow-black/40
                     flex flex-col overflow-hidden transition-all duration-150
-                    ${open ? "opacity-100 scale-100 pointer-events-auto w-[360px] h-[480px]" : "opacity-0 scale-95 pointer-events-none w-2 h-2"}`}
+                    ${open ? "opacity-100 scale-100 pointer-events-auto w-90 h-120" : "opacity-0 scale-95 pointer-events-none w-2 h-2"}`}
             >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-[#161616] shrink-0">
                     <div className="flex items-center gap-2">
@@ -292,12 +323,13 @@ export default function Aichat() {
 
                 <form onSubmit={handleSend} className="flex items-end gap-2 p-3 border-t border-divider shrink-0">
                     <textarea
+                        ref={textareaRef}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         rows={1}
                         placeholder="e.g. Prep slides for Friday's demo"
-                        className="flex-1 resize-none bg-main border border-divider rounded-lg px-3 py-2 text-sm text-primary placeholder-accent-color/70 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 max-h-24"
+                        className="flex-1 overflow-y-hidden resize-none bg-main border border-divider rounded-lg px-3 py-2 text-sm text-primary placeholder-accent-color/70 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 max-h-24"
                     />
                     <button
                         type="submit"
@@ -314,7 +346,9 @@ export default function Aichat() {
                 type="button"
                 onClick={() => setOpen((prev) => !prev)}
                 aria-label={open ? "Close task assistant" : "Open task assistant"}
-                className="w-14 h-14 rounded-full bg-brand text-main shadow-lg shadow-black/40 flex items-center justify-center hover:brightness-110 active:brightness-95 transition cursor-pointer"
+                className={`w-14 h-14 rounded-full bg-brand text-main shadow-lg shadow-black/40 flex items-center justify-center hover:brightness-110 active:brightness-95 transition cursor-pointer
+                        ${ !open ? 'opacity-30 transition-opacity duration-300 ease-in-out hover:opacity-100' : ''}
+                    `}
             >
                 {open ? <XIcon className="w-5 h-5" /> : <SparkleIcon className="w-6 h-6" />}
             </button>

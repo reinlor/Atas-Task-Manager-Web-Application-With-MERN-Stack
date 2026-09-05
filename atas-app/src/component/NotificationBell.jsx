@@ -25,8 +25,6 @@ export default function NotificationBell({ currentUserId }) {
                 if (err.response?.status !== 404) {
                     toast.error(err.response?.data?.message || "Failed to load notifications.");
                 }
-            } finally {
-                setIsLoading(false);
             }
         };
 
