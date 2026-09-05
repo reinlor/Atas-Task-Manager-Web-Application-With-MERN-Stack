@@ -80,10 +80,11 @@ exports.createAccount = async (req, res) => {
     }
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 // Controller to Login user account
 exports.loginAccount = async (req, res) => {
     const { email, password } = req.body;
-    const isProduction = process.env.NODE_ENV === 'production';
 
     try {
         const myaccount = await account.findOne({ email });
@@ -157,8 +158,8 @@ exports.googleLogin = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
         });
 
