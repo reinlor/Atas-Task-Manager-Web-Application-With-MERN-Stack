@@ -13,7 +13,6 @@ const server = http.createServer(app);
 const { initSocket } = require('./config/socket');
 const io = initSocket(server);
 const PORT = process.env.PORT || 3000;
-const URI = process.env.ORIGIN_URI || 'http://localhost:5173'
 
 const accountRoute = require('./routes/accountRoute');
 const taskRoute = require('./routes/taskRoute')
@@ -24,14 +23,26 @@ const authToken = require('./config/authentication')
 
 // Socket Io Connection
 io.on('connection', (socket) => {
-  socket.on('join_bell', (userId) => {
-    if (userId) socket.join(userId);
-  });
+    socket.on('join_bell', (userId) => {
+        if (userId) socket.join(userId);
+    });
 });
+
+// list of allowed uri
+const allowedOrigins = [
+    'http://localhost:5173',
+    process.env.ORIGIN_URI
+];
 
 // Middleware
 app.use(cors({
-    origin: URI,
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
