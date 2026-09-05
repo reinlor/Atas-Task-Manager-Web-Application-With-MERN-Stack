@@ -27,7 +27,7 @@ export default function Login() {
     });
     const { email, password, username } = formData;
     const [isButtonLoading, setIsButtonLoading] = useState(false);
-    
+
     // Use states and helpers for modals
     const [showModal, setShowModal] = useState(false);
     const [modalData, setModalData] = useState({
@@ -36,10 +36,10 @@ export default function Login() {
     });
     const cleanModalState = () => {
         setIsButtonLoading(false);
-        setModalData({title: "", content: ""});
+        setModalData({ title: "", content: "" });
         setProceed(false)
     }
-    const onConfirmModal = ()=> {
+    const onConfirmModal = () => {
         setShowModal(false)
         cleanModalState()
     }
@@ -109,8 +109,8 @@ export default function Login() {
             setIsButtonLoading(true)
             const response = await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/forgotPass`, { email })
-            
-            if (response.status === 200){
+
+            if (response.status === 200) {
                 displayModal("Reset Password", response?.data?.message)
             }
         } catch (error) {
@@ -140,6 +140,10 @@ export default function Login() {
                     display={showModal}
                     onConfirm={onConfirmModal}
                 />
+
+                <div className="fixed animate-pulse top-0 right-0 bg-white text-black p-3 m-2 rounded-2xl text-sm z-99999">
+                    <p className="font-semibold">Some parts are still underdevelopment</p>
+                </div>
 
                 <div className="relative w-full min-h-[380px] grid grid-cols-1 items-start">
 
