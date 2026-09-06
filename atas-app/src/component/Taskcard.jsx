@@ -20,6 +20,7 @@ export default function TaskCard({ task }) {
     const status = STATUS_STYLES[task.status] ?? STATUS_STYLES.Pending;
 
     const isShared = Boolean(user && task.createdBy && task.createdBy !== user._id);
+    console.log(isShared)
     return (
         <button
             type="button"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 // Markdown Imports
@@ -74,9 +74,6 @@ function FadeIn({ children, className = "" }) {
 }
 
 export default function Tasks() {
-    const previewRef = useRef(null)
-    const markdownRef = useRef(null)
-
     const { taskId } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -85,7 +82,7 @@ export default function Tasks() {
     const [title, setTitle] = useState("");
     const [markdown, setMarkdown] = useState("");
     const [status, setStatus] = useState("Pending");
-
+    
     const [team, setTeam] = useState(null);
     const [isOwner, setIsOwner] = useState(true);
     const [canEdit, setCanEdit] = useState(true);
@@ -198,93 +195,15 @@ export default function Tasks() {
     }
 
     const sanitizeOptions = {
-        ...defaultSchema,
-        attributes: {
-            ...defaultSchema.attributes,
-            div: [...(defaultSchema.attributes?.div || []), ['className', 'math', 'math-display']],
-            span: [...(defaultSchema.attributes?.span || []), ['className', 'math', 'math-inline', 'katex', 'katex-mathml', 'katex-html']],
-        },
-    };
+    ...defaultSchema,
+    attributes: {
+        ...defaultSchema.attributes,
+        div: [...(defaultSchema.attributes?.div || []), ['className', 'math', 'math-display']],
+        span: [...(defaultSchema.attributes?.span || []), ['className', 'math', 'math-inline', 'katex', 'katex-mathml', 'katex-html']],
+    },
+};
 
     const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.Pending;
-
-    // Logic to capture and highlight selected word on edit
-    const handleTextareaSelect = () => {
-        const textarea = markdownRef.current;
-        const previewDiv = previewRef.current;
-        if (!textarea || !previewDiv) return;
-
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(start, end).trim();
-        if (!selectedText) return;
-
-        // attempts to remove/strip basic md
-        console.log('Text: ', selectedText)
-        const cleanText = selectedText.replace(/[*_~#`>]/g, "").trim();
-        console.log('Clean Text: ', cleanText)
-        if (!cleanText) return;
-
-        const treeWalker = document.createTreeWalker(
-            previewDiv,
-            NodeFilter.SHOW_TEXT,
-            null
-        );
-
-        let currentNode = treeWalker.nextNode();
-        let targetNode = null;
-        let targetOffset = -1;
-
-        while (currentNode) {
-            const matchIndex = currentNode.nodeValue.indexOf(cleanText);
-            if (matchIndex !== -1) {
-                targetNode = currentNode;
-                targetOffset = matchIndex;
-                break;
-            }
-            currentNode = treeWalker.nextNode();
-        }
-
-        if (targetNode) {
-            const selection = window.getSelection();
-            const range = document.createRange();
-
-            range.setStart(targetNode, targetOffset);
-            range.setEnd(targetNode, targetOffset + cleanText.length);
-
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            if (range.startContainer.parentElement) {
-                range.startContainer.parentElement.scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                });
-            }
-        }
-    };
-
-    // preview to textarea (nasa edit mode)
-    const handlePreviewSelect = () => {
-        const textarea = markdownRef.current;
-        if (!textarea) return;
-
-        const selection = window.getSelection();
-        const selectedText = selection.toString().trim();
-        if (!selectedText) return;
-
-        const matchIndex = markdown.indexOf(selectedText);
-
-        if (matchIndex !== -1) {
-            textarea.focus();
-            textarea.setSelectionRange(matchIndex, matchIndex + selectedText.length);
-
-            const lineHeight = 20;
-            const linesBeforeMatch = markdown.substring(0, matchIndex).split("\n").length;
-            textarea.scrollTop = (linesBeforeMatch - 2) * lineHeight;
-        }
-    };
-
 
     return (
         <div className="flex flex-col h-full">
@@ -391,7 +310,7 @@ export default function Tasks() {
                             {status}
                         </span>
                     </div>
-                    <div className={` text-primary text-base ${MARKDOWN_TYPOGRAPHY}`}>
+                    <div className={`whitespace-pre-wrap wrap-break-word text-primary text-base ${MARKDOWN_TYPOGRAPHY}`}>
                         <Markdown
                             remarkPlugins={[[
                                 remarkGfm, { singleTilde: false }],
@@ -436,10 +355,8 @@ export default function Tasks() {
                                 Markdown
                             </p>
                             <textarea
-                                ref={markdownRef}
                                 value={markdown}
                                 onChange={(e) => setMarkdown(e.target.value)}
-                                onSelect={handleTextareaSelect}
                                 placeholder="Start writing..."
                                 className="flex-1 resize-none bg-transparent p-4 text-sm font-mono text-primary placeholder-accent-color/70 outline-none focus:ring-2 focus:ring-inset focus:ring-brand/30"
                             />
@@ -449,19 +366,16 @@ export default function Tasks() {
                             <p className="px-4 py-2 text-[11px] uppercase tracking-widest text-accent-color border-b border-divider">
                                 Preview
                             </p>
-                            <div
-                                ref={previewRef}
-                                onMouseUp={handlePreviewSelect}
-                                className={`flex-1 overflow-y-auto p-4 text-primary text-sm ${MARKDOWN_TYPOGRAPHY}`}>
+                            <div className={`whitespace-pre-wrap wrap-break-word flex-1 overflow-y-auto p-4 text-primary text-sm ${MARKDOWN_TYPOGRAPHY}`}>
                                 <Markdown
-                                    remarkPlugins={[[
-                                        remarkGfm, { singleTilde: false }],
-                                        remarkMath
-                                    ]}
-                                    rehypePlugins={[
-                                        rehypeHighlight,
-                                        [rehypeSanitize, sanitizeOptions],
-                                        rehypeKatex]}>
+                            remarkPlugins={[[
+                                remarkGfm, { singleTilde: false }],
+                                remarkMath
+                            ]}
+                            rehypePlugins={[
+                                rehypeHighlight,
+                                [rehypeSanitize, sanitizeOptions],
+                                rehypeKatex]}>
                                     {markdown}
                                 </Markdown>
                             </div>
