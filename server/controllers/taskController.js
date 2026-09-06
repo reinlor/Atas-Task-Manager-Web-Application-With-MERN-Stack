@@ -33,14 +33,19 @@ exports.createTask = async (req, res) => {
 
         // FIXME: Update core logic of createOrUpdateEmitDashboard
         await createOrUpdateEmitDashboard(
-            {
+            {   
                 userId: id,
-                recentTask: {
-                    title: newTask.title,
-                    status: newTask.status,
-                },
                 stats: {
+                    userId: id,
+                    totalTask: 1,
                     inProgress: 1
+                },
+                recentTask: {
+                    title: title,
+                    status: status
+                },
+                recentActivity: {
+                    text: `You created "${title}"`
                 }
             }
         )

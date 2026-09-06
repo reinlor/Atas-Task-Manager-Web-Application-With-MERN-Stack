@@ -1,40 +1,63 @@
 const dashboard = require('../models/dashboardModel');
 
-// FIXME: Update core logic of createOrUpdateEmitDashboard
-exports.createOrUpdateEmitDashboard = async ({ userId, stats, recentTask, recentActivity }) => {
+exports.createOrUpdateEmitDashboard = async ({
+    userId,
+    stats = {},
+    recentTask = {},
+    recentActivity = {}
+}) => {
     try {
-        const payload = {
-            stats: {
-                totalTask: stats?.inProgress + stats?.completed + stats?.shared,
-                inProgress: stats?.inProgress,
-                completed: stats?.completed,
-                shared: stats?.shared
-            },
-            recentTask: [{
-                title: recentTask?.title,
-                status: recentTask?.status,
-                time: recentTask?.time
-            }],
-            recentActivity: [{
-                text: recentActivity?.text,
-                time: recentActivity?.time
-            }],
-            userId: userId
+        const { totalTask = 0, inProgress = 0, completed = 0, shared = 0 } = stats;
+        const { title, status } = recentTask;
+        const { text } = recentActivity;
+
+        const updateOps = {};
+
+        // 1. Increment/Decrement Stats
+        if (totalTask || inProgress || completed || shared) {
+            updateOps.$inc = {
+                'stats.totalTask': totalTask,
+                'stats.inProgress': inProgress,
+                'stats.completed': completed,
+                'stats.shared': shared
+            };
         }
 
-        // Create or Update (if it already exist 😏) a dasboard document
+        updateOps.$push = {};
+
+        if (title && status) {
+            updateOps.$push.recentTask = {
+                $each: [{ title, status }],
+                $slice: -10
+            };
+        }
+
+        if (text) {
+            updateOps.$push.recentActivity = {
+                $each: [{ text, timestamp: new Date() }],
+                $slice: -10
+            };
+        }
+
+        if (Object.keys(updateOps.$push).length === 0) {
+            delete updateOps.$push;
+        }
+
+        // Execute update/create
         const dash = await dashboard.findOneAndUpdate(
-            { userId: userId },
-            payload,
-            { new: true, upsert: true })
-            .populate({ path: 'Account', select: 'name email' });
+            { userId },
+            updateOps,
+            { new: true, upsert: true, runValidators: true }
+        );
 
-        // Emit a socket
-        getIO().to(userId.toString()).emit('dashboard', dash);
+        // Emit socket event if io is available
+        // if (dash) {
+        //     getIO().to(userId.toString()).emit('dashboard', dash);
+        // }
 
-        return dash
+        return dash;
+    } catch (error) {
+        console.error('Failed to update/emit dashboard:', error);
+        throw error; 
     }
-    catch (error) {
-        console.error('Failed to retrieve dashboard:', error);
-    }
-}
+};
