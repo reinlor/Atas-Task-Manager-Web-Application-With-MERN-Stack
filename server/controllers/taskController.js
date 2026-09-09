@@ -31,7 +31,6 @@ exports.createTask = async (req, res) => {
             createdBy: req.user.id
         })
 
-        // FIXME: Update core logic of createOrUpdateEmitDashboard
         await createOrUpdateEmitDashboard(
             {   
                 userId: id,
