@@ -105,6 +105,7 @@ exports.loginAccount = async (req, res) => {
             httpOnly: true,
             secure: isProduction,
             sameSite: isProduction ? 'none' : 'lax',
+            partitioned: true,
             maxAge: 30 * 24 * 60 * 60 * 1000
         });
 
@@ -127,6 +128,7 @@ exports.loginAccount = async (req, res) => {
 // Controlelr to Login user via Google Login
 exports.googleLogin = async (req, res) => {
     const { idToken } = req.body;
+    const isProduction = process.env.NODE_ENV === 'production';
 
     if (!idToken)
         return res.status(400).json({ message: "Google Token is Missing" })
@@ -157,8 +159,9 @@ exports.googleLogin = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+            partitioned: true,
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
         });
 
