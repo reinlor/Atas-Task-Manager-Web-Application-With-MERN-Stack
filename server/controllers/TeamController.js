@@ -2,10 +2,20 @@ const Team = require('../models/teamModel');
 const redisClient = require('../config/redis');
 const { createAndEmitNotification } = require('../services/notificationService');
 
+// TODO: Add dashboard service on this controller
+
 const truncate = (str, maxLength = 20) => {
     if (!str) return '';
     return str.length > maxLength ? `${str.substring(0, maxLength)}...` : str;
 };
+
+async function safeNotify(payload) {
+    try {
+        await createAndEmitNotification(payload);
+    } catch (err) {
+        console.error(`Failed to notify ${payload.userId}:`, err.message);
+    }
+}
 
 // Controller function to create a team
 exports.createTeam = async (req, res) => {
@@ -30,7 +40,7 @@ exports.createTeam = async (req, res) => {
             for (const member of members) {
                 const memberId = member.user.toString();
                 if (memberId !== id.toString()) {
-                    await createAndEmitNotification({
+                    await safeNotify({
                         userId: memberId,
                         type: 'invite',
                         text: `You were added to "${teamName}"`
@@ -53,10 +63,9 @@ exports.findTeam = async (req, res) => {
     try {
         const { teamId } = req.params;
 
-        // Fixed: changed lowercase team to Team to prevent variable shadowing over the imported model
         const team = await Team.findById(teamId)
             .populate('owner', 'username email')
-            .populate('members.user', 'username email'); // Fixed: changed collaborators to members
+            .populate('members.user', 'username email');
 
         if (!team) {
             return res.status(404).json({ message: 'Team not found' });
@@ -109,15 +118,13 @@ exports.updateTeam = async (req, res) => {
                 const previousRole = existingMemberMap.get(memberId);
 
                 if (!previousRole) {
-                    // newlu added member
-                    await createAndEmitNotification({
+                    await safeNotify({
                         userId: memberId,
                         type: 'invite',
                         text: `You were added to "${teamName}"`
                     });
                 } else if (previousRole !== m.role) {
-                    // member role changed by owner
-                    await createAndEmitNotification({
+                    await safeNotify({
                         userId: memberId,
                         type: 'role',
                         text: `Your role on "${teamName}" was changed to ${m.role}`

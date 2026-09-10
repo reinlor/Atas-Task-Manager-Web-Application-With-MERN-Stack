@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { TaskIcon, HistoryIcon } from "../component/Icons";
+import { useState } from 'react'
 
 // Temp Data
 // TODO: Change date into real data retrieved from database
 const MOCK_STATS = [
     { label: "Total tasks", value: 12 },
-    { label: "In progress", value: 4 },
+    { label: "Pending & In progress", value: 4 },
     { label: "Completed", value: 6 },
     { label: "Shared with you", value: 3 },
 ];

@@ -1,9 +1,10 @@
-const task = require('../models/taskModel')
-const Team = require('../models/teamModel')
-const Account = require('../models/accountModel')
-const mongoose = require('mongoose')
-const jwt = require('jsonwebtoken')
-const redisClient = require('../config/redis')
+const task = require('../models/taskModel');
+const Team = require('../models/teamModel');
+const Account = require('../models/accountModel');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const redisClient = require('../config/redis');
+const { transactionRunService } = require('../services/transactionRunService')
 
 // services
 const { createAndEmitNotification } = require('../services/notificationService');
@@ -16,39 +17,37 @@ const truncate = (str, maxLength = 20) => {
 
 // Controller to post raw markdown task to the database
 exports.createTask = async (req, res) => {
+
+    const { id } = req.user;
+    const { title, content, status } = req.body;
+    const taskCacheKey = `task:${id}`
+
+    if (!title || !status)
+        return res.status(400).json({ message: "Title and status should not be empty" })
+
     try {
-        const { id } = req.user;
-        const { title, content, status } = req.body;
-        const taskCacheKey = `task:${id}`
+        const newTask = await transactionRunService(async (session) => {
 
-        if (!title || !status)
-            return res.status(400).json({ message: "Title and status should not be empty" })
+            const created = await task.create([{
+                title,
+                content,
+                status,
+                createdBy: req.user.id,
+            }], { session })
+            const createdTask = created[0]
 
-        const newTask = await task.create({
-            title,
-            content,
-            status,
-            createdBy: req.user.id
+            await createOrUpdateEmitDashboard({
+                userId: id,
+                stats: {
+                    inProgress: status === 'In Progress' || status === 'Pending' ? 1 : 0,
+                    completed: status === 'Complete' ? 1 : 0
+                },
+                recentTask: { title: createdTask.title, status: createdTask.status },
+                recentActivity: { text: `You created "${createdTask.title}"` },
+                session
+            });
+            return createdTask;
         })
-
-        // FIXME: Temporarily mark this process as comment, will fix it later
-        // await createOrUpdateEmitDashboard(
-        //     {   
-        //         userId: id,
-        //         stats: {
-        //             userId: id,
-        //             totalTask: 1,
-        //             inProgress: 1
-        //         },
-        //         recentTask: {
-        //             title: title,
-        //             status: status
-        //         },
-        //         recentActivity: {
-        //             text: `You created "${title}"`
-        //         }
-        //     }
-        // )
         await redisClient.del(taskCacheKey)
 
         return res.status(201).json({
@@ -84,112 +83,110 @@ async function resolveTaskPermissions(taskDoc, userId) {
     return { isOwner: false, canEdit, hasAccess: true };
 }
 
+async function notifyAndUpdateDashboards(recipientIds, { type, text }) {
+    for (const recipientId of recipientIds) {
+        try {
+            await createAndEmitNotification({ userId: recipientId, type, text });
+        } catch (err) {
+            console.error(`Failed to notify ${recipientId}:`, err.message);
+        }
+        try {
+            await createOrUpdateEmitDashboard({
+                userId: recipientId,
+                stats: { shared: type === 'share' ? 1 : 0 },
+                recentActivity: { text }
+            });
+        } catch (err) {
+            console.error(`Failed to update dashboard for ${recipientId}:`, err.message);
+        }
+    }
+}
+
 // Controller to update raw markdown task to the database
 exports.updateTask = async (req, res) => {
     try {
         const { id: userId } = req.user;
         const { id: taskId } = req.params;
         const updates = req.body;
-
+ 
         const currentTask = await task.findById(taskId);
         if (!currentTask) {
             return res.status(404).json({ message: 'Task not found' });
         }
-
+ 
         const { isOwner, canEdit } = await resolveTaskPermissions(currentTask, userId);
         if (!canEdit) {
             return res.status(403).json({ message: 'You do not have permission to edit this task' });
         }
-
+ 
         if (!isOwner && Object.prototype.hasOwnProperty.call(updates, 'team')) {
             return res.status(403).json({ message: 'Only the task creator can change sharing' });
         }
-
+ 
         const initialTeamId = currentTask.team ? currentTask.team.toString() : null;
-
-        // Apply updates and save
+ 
         Object.assign(currentTask, updates);
         const updatedTask = await currentTask.save();
-
+ 
         const newTeamId = updatedTask.team ? updatedTask.team.toString() : null;
-
-        // Check if team exist
+ 
         if (newTeamId) {
             const actor = await Account.findById(userId).select('username');
             const actorName = truncate(actor?.username || 'Someone', 15);
             const taskTitle = truncate(updatedTask.title, 20);
-
-            // task was newly shared with a Team
+ 
             if (!initialTeamId) {
+                // Scenario 1: task was newly shared with a team
                 const teamDoc = await Team.findById(newTeamId);
                 if (teamDoc) {
                     const recipients = new Set();
-
+ 
                     if (teamDoc.owner.toString() !== userId.toString()) {
                         recipients.add(teamDoc.owner.toString());
                     }
-
                     teamDoc.members.forEach((m) => {
                         const memberId = m.user.toString();
-                        if (memberId !== userId.toString()) {
-                            recipients.add(memberId);
-                        }
+                        if (memberId !== userId.toString()) recipients.add(memberId);
                     });
-
-                    for (const recipientId of recipients) {
-                        await createAndEmitNotification({
-                            userId: recipientId,
-                            type: 'share',
-                            text: `${actorName} shared "${taskTitle}" with you`
-                        });
-                    }
+ 
+                    await notifyAndUpdateDashboards(recipients, {
+                        type: 'share',
+                        text: `${actorName} shared "${taskTitle}" with you`
+                    });
                 }
-            }
-
-            // General Task Update
-            else {
+            } else {
+                // Scenario 2: general update to an already-shared task
                 const teamDoc = await Team.findById(newTeamId);
                 if (teamDoc) {
                     const recipients = new Set();
-
-                    // Add task creator if they didn't make the edit
+ 
                     if (updatedTask.createdBy.toString() !== userId.toString()) {
                         recipients.add(updatedTask.createdBy.toString());
                     }
-
-                    // Add team owner if they didn't make the edit
                     if (teamDoc.owner.toString() !== userId.toString()) {
                         recipients.add(teamDoc.owner.toString());
                     }
-
-                    // Add team members except the editor
                     teamDoc.members.forEach((m) => {
                         const memberId = m.user.toString();
-                        if (memberId !== userId.toString()) {
-                            recipients.add(memberId);
-                        }
+                        if (memberId !== userId.toString()) recipients.add(memberId);
                     });
-
-                    for (const recipientId of recipients) {
-                        await createAndEmitNotification({
-                            userId: recipientId,
-                            type: 'update',
-                            text: `${actorName} updated "${taskTitle}"`
-                        });
-                    }
+ 
+                    await notifyAndUpdateDashboards(recipients, {
+                        type: 'update',
+                        text: `${actorName} updated "${taskTitle}"`
+                    });
                 }
             }
         }
-
-        // Clear Redis caches
+ 
         await redisClient.del(`task:${userId}`);
         await redisClient.del(`tasklist:${taskId}`);
-
+ 
         res.status(200).json({
             message: 'Task updated successfully',
             task: updatedTask
         });
-
+ 
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -298,6 +295,8 @@ exports.deleteTask = async (req, res) => {
         if (!deletedItem) {
             return res.status(404).json({ message: "Task not found", data: deletedItem })
         }
+
+        // TODO: Add Dashboard service for decrementation
 
         await redisClient.del(taskCacheKey)
         await redisClient.del(taskListCacheKey)

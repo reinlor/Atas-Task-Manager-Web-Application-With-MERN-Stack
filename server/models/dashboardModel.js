@@ -10,13 +10,13 @@ const dashboardSchema = new mongoose.Schema({
     recentTask: [{
         title: { type: String },
         status: { type: String },
-        time: { type: Date, default: Date.now }
+        timestamp: { type: Date, default: Date.now }
     }],
     recentActivity: [{
         text: { type: String },
-        time: { type: Date, default: Date.now }
+        timestamp: { type: Date, default: Date.now }
     }],
     userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Account' }
-})
+}, { timestamps: true });
 
 module.exports = mongoose.model('Dashboard', dashboardSchema) 

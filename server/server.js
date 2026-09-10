@@ -19,6 +19,7 @@ const taskRoute = require('./routes/taskRoute')
 const teamRoute = require('./routes/teamRoute')
 const geminiRoute = require('./routes/geminiRoute')
 const notificationRoute = require('./routes/notificationRoute');
+const dashboardRoute = require('./routes/dashboardRoute')
 const authToken = require('./config/authentication')
 
 // Socket Io Connection
@@ -59,6 +60,7 @@ app.use("/api/task", authToken, taskRoute);
 app.use("/api/team", authToken, teamRoute);
 app.use("/api/notification", authToken, notificationRoute);
 app.use("/api/ai", geminiRoute)
+app.use("/api/dashboard", authToken, dashboardRoute)
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)

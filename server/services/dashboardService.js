@@ -4,7 +4,8 @@ exports.createOrUpdateEmitDashboard = async ({
     userId,
     stats = {},
     recentTask = {},
-    recentActivity = {}
+    recentActivity = {},
+    session = null
 }) => {
     try {
         const { inProgress = 0, completed = 0, shared = 0 } = stats;
@@ -34,7 +35,7 @@ exports.createOrUpdateEmitDashboard = async ({
             }
         ];
 
-        const options = { new: true, upsert: true, runValidators: true };
+        const options = { new: true, upsert: true, runValidators: true, updatePipeline: true, session };
 
         let dash = await dashboard.findOneAndUpdate({ userId }, pipeline, options);
 
@@ -42,16 +43,24 @@ exports.createOrUpdateEmitDashboard = async ({
         if ((title && status) || text) {
             const pushOps = {};
             if (title && status) {
-                pushOps.recentTask = { $each: [{ title, status }], $slice: -10 };
+                pushOps.recentTask = {
+                    $each: [{ title, status, timestamp: new Date() }],
+                    $position: 0,
+                    $slice: 10
+                };
             }
             if (text) {
-                pushOps.recentActivity = { $each: [{ text, timestamp: new Date() }], $slice: -10 };
+                pushOps.recentActivity = {
+                    $each: [{ text, timestamp: new Date() }],
+                    $position: 0,
+                    $slice: 10
+                };
             }
-
+ 
             dash = await dashboard.findOneAndUpdate(
                 { userId },
                 { $push: pushOps },
-                { new: true }
+                { new: true, session }
             );
         }
 
