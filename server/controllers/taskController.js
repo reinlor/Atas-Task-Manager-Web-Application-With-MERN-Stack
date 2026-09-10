@@ -31,23 +31,24 @@ exports.createTask = async (req, res) => {
             createdBy: req.user.id
         })
 
-        await createOrUpdateEmitDashboard(
-            {   
-                userId: id,
-                stats: {
-                    userId: id,
-                    totalTask: 1,
-                    inProgress: 1
-                },
-                recentTask: {
-                    title: title,
-                    status: status
-                },
-                recentActivity: {
-                    text: `You created "${title}"`
-                }
-            }
-        )
+        // FIXME: Temporarily mark this process as comment, will fix it later
+        // await createOrUpdateEmitDashboard(
+        //     {   
+        //         userId: id,
+        //         stats: {
+        //             userId: id,
+        //             totalTask: 1,
+        //             inProgress: 1
+        //         },
+        //         recentTask: {
+        //             title: title,
+        //             status: status
+        //         },
+        //         recentActivity: {
+        //             text: `You created "${title}"`
+        //         }
+        //     }
+        // )
         await redisClient.del(taskCacheKey)
 
         return res.status(201).json({
