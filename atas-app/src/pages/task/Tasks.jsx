@@ -205,10 +205,11 @@ export default function Tasks() {
             span: [...(defaultSchema.attributes?.span || []), ['className', 'math', 'math-inline', 'katex', 'katex-mathml', 'katex-html']],
         },
     };
-
+    
     const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.Pending;
-
+    
     // Logic to capture and highlight selected word on edit
+    // FIXME: Enhance the overall logic of capturing text
     const handleTextareaSelect = () => {
         const textarea = markdownRef.current;
         const previewDiv = previewRef.current;
@@ -246,14 +247,10 @@ export default function Tasks() {
         }
 
         if (targetNode) {
-            const selection = window.getSelection();
             const range = document.createRange();
 
             range.setStart(targetNode, targetOffset);
             range.setEnd(targetNode, targetOffset + cleanText.length);
-
-            selection.removeAllRanges();
-            selection.addRange(range);
 
             if (range.startContainer.parentElement) {
                 range.startContainer.parentElement.scrollIntoView({
