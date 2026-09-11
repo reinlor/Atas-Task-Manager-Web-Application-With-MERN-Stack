@@ -14,7 +14,7 @@ import 'katex/dist/katex.min.css';
 import axios from "axios";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
-import { ChevronDownIcon, MoreIcon } from "../../component/Icons";
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, MoreIcon } from "../../component/Icons";
 import { useTaskEditor } from "../../context/TaskEditorContext";
 import Button from "../../component/Button";
 import Modal from "../../component/Modal";
@@ -94,6 +94,7 @@ export default function Tasks() {
     const [isSaving, setIsSaving] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [participants, setParticipants] = useState([]);
+    const [mobileEditorPane, setMobileEditorPane] = useState("markdown");
     const socketRef = useRef(null);
     const applyingRemoteChangeRef = useRef(false);
     const [mode, setMode] = useState(searchParams.get("new") === "true" ? "edit" : "view");
@@ -505,8 +506,33 @@ export default function Tasks() {
                         </div>
                     </div>
 
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0">
-                        <div className="flex flex-col rounded-xl border border-divider bg-input overflow-hidden">
+                    <div className="flex-1 min-h-0">
+                        <div className="mb-3 flex items-center justify-between gap-3 md:hidden">
+                            <button
+                                type="button"
+                                onClick={() => setMobileEditorPane("markdown")}
+                                disabled={mobileEditorPane === "markdown"}
+                                aria-label="Show markdown editor"
+                                className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-divider text-secondary hover:text-primary hover:bg-input disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                <ChevronLeftIcon className="w-5 h-5" />
+                            </button>
+                            <span className="text-[11px] uppercase tracking-widest text-accent-color">
+                                {mobileEditorPane === "markdown" ? "Markdown" : "Preview"}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setMobileEditorPane("preview")}
+                                disabled={mobileEditorPane === "preview"}
+                                aria-label="Show markdown preview"
+                                className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-divider text-secondary hover:text-primary hover:bg-input disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                <ChevronRightIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="grid h-full grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className={`${mobileEditorPane === "markdown" ? "flex" : "hidden"} md:flex flex-col rounded-xl border border-divider bg-input overflow-hidden`}>
                             <p className="px-4 py-2 text-[11px] uppercase tracking-widest text-accent-color border-b border-divider">
                                 Markdown
                             </p>
@@ -525,7 +551,7 @@ export default function Tasks() {
                             />
                         </div>
 
-                        <div className="flex flex-col rounded-xl border border-divider bg-main overflow-hidden">
+                        <div className={`${mobileEditorPane === "preview" ? "flex" : "hidden"} md:flex flex-col rounded-xl border border-divider bg-main overflow-hidden`}>
                             <p className="px-4 py-2 text-[11px] uppercase tracking-widest text-accent-color border-b border-divider">
                                 Preview
                             </p>
@@ -545,6 +571,7 @@ export default function Tasks() {
                                     {markdown}
                                 </Markdown>
                             </div>
+                        </div>
                         </div>
                     </div>
                 </FadeIn>
