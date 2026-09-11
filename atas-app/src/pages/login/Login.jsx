@@ -158,10 +158,6 @@ export default function Login() {
                     onConfirm={onConfirmModal}
                 />
 
-                <div className="fixed animate-pulse top-0 right-0 bg-white text-black p-3 m-2 rounded-2xl text-sm z-99999">
-                    <p className="font-semibold">Some parts are still underdevelopment</p>
-                </div>
-
                 <div className="relative w-full min-h-[380px] grid grid-cols-1 items-start min-w-0">
 
                     {/* Login Form */}
