@@ -17,6 +17,17 @@ function getGreeting() {
     return "Good evening";
 }
 
+function formatActivityDate(createdAt) {
+    const date = new Date(createdAt);
+    if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+    return date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    });
+}
+
 function Dashboard() {
     const { user } = useAuth();
     const [dashboard, setDashboard] = useState(null);
@@ -130,7 +141,7 @@ function Dashboard() {
                             <div key={item._id}>
                                 <p className="text-xs text-primary leading-snug sm:text-sm">{getActivityText(item)}</p>
                                 <p className="text-[11px] text-accent-color mt-0.5 sm:text-xs">
-                                    {new Date(item.timestamp).toLocaleDateString()}
+                                    {formatActivityDate(item.createdAt)}
                                 </p>
                             </div>
                         ))}
