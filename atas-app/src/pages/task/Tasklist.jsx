@@ -43,14 +43,14 @@ export default function TaskList() {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <p className="text-sm text-secondary">
                     {tasks.length} task{tasks.length !== 1 ? "s" : ""}
                 </p>
                 <button
                     type="button"
                     onClick={handleCreateTask}
-                    className="inline-flex items-center gap-2 bg-brand text-main text-sm font-semibold rounded-lg px-4 py-2.5 hover:brightness-110 active:brightness-95 transition cursor-pointer"
+                    className="inline-flex items-center gap-2 bg-brand text-main text-sm font-semibold rounded-lg px-3 py-2.5 hover:brightness-110 active:brightness-95 transition cursor-pointer sm:px-4"
                 >
                     + New task
                 </button>

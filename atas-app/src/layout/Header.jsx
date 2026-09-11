@@ -15,7 +15,7 @@ function Header() {
     const title = PAGE_TITLES.find(({ match }) => match(location.pathname))?.title ?? "atas";
  
     return (
-        <header className="flex items-center justify-between px-6 py-4 border-b border-divider bg-main">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-divider bg-main sm:px-6 sm:py-4">
             <h1 className="text-lg font-semibold text-primary">{title}</h1>
  
             <div className="flex items-center gap-4">

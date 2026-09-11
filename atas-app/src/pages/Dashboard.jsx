@@ -43,11 +43,11 @@ function Dashboard() {
     const { user } = useAuth();
 
     return (
-        <div className="max-w-4xl">
+        <div className="w-full max-w-4xl">
             <p className="text-secondary text-sm">
                 {getGreeting()}{user?.username ? `, ${user.username}` : ""}.
             </p>
-            <h1 className="text-xl font-semibold text-primary mt-1 mb-6">
+            <h1 className="text-lg font-semibold text-primary mt-1 mb-6 sm:text-xl">
                 Here's what's happening across your boards.
             </h1>
 

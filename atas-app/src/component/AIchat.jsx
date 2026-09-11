@@ -280,12 +280,12 @@ export default function Aichat() {
     };
 
     return (
-        <aside className="fixed bottom-12 right-6 z-40 flex flex-col items-end">
+        <aside className="fixed bottom-20 right-3 z-40 flex flex-col items-end sm:bottom-12 sm:right-6">
             <div
                 className={`mb-3 max-w-[calc(100vw-3rem)]  max-h-[70vh] origin-bottom-right
                     bg-input border border-divider rounded-2xl shadow-2xl shadow-black/40
                     flex flex-col overflow-hidden transition-all duration-150
-                    ${open ? "opacity-100 scale-100 pointer-events-auto w-90 h-120" : "opacity-0 scale-95 pointer-events-none w-2 h-2"}`}
+                    ${open ? "opacity-100 scale-100 pointer-events-auto w-[calc(100vw-1.5rem)] h-[min(30rem,calc(100vh-6rem))] sm:w-90 sm:h-120" : "opacity-0 scale-95 pointer-events-none w-2 h-2"}`}
             >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-[#161616] shrink-0">
                     <div className="flex items-center gap-2">

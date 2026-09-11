@@ -345,7 +345,7 @@ export default function Team() {
     const stagedIds = stagedMembers.map((m) => m._id);
 
     return (
-        <div className="max-w-2xl">
+        <div className="w-full max-w-2xl">
             {/* Team switcher — every team the user owns or belongs to, plus a
                 way to create another one without leaving the page. */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-6">
@@ -384,9 +384,9 @@ export default function Team() {
 
             {activeTeam && (
                 <>
-                    <div className="flex items-center justify-between mb-1">
-                        <h1 className="text-xl font-semibold text-primary">{activeTeam.name}</h1>
-                        <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <h1 className="min-w-0 wrap-break-word text-xl font-semibold text-primary">{activeTeam.name}</h1>
+                        <div className="flex items-center gap-3 shrink-0">
                             <p className="text-secondary text-sm">
                                 {activeTeam.members.length + stagedMembers.length + 1} member
                                 {activeTeam.members.length + stagedMembers.length !== 0 ? "s" : ""}
@@ -439,7 +439,7 @@ export default function Team() {
                     </div>
 
                     {stagedMembers.length > 0 && (
-                        <div className="flex items-center gap-3 mt-5">
+                        <div className="flex flex-wrap items-center gap-3 mt-5">
                             <button
                                 type="button"
                                 onClick={handleSaveNewMembers}

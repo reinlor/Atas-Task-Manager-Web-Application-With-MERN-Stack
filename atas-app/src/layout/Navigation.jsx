@@ -14,13 +14,13 @@ function Navigation() {
     const location = useLocation();
 
     return (
-        <nav className="w-60 shrink-0 h-screen sticky top-0 flex flex-col bg-[#161616] border-r border-divider">
-            <div className="px-5 py-5 flex items-center gap-2 font-mono text-sm text-brand">
+        <nav className="fixed bottom-0 left-0 right-0 z-30 h-16 flex shrink-0 flex-row border-t border-divider bg-[#161616] lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:flex-col lg:border-r lg:border-t-0">
+            <div className="hidden px-5 py-5 items-center gap-2 font-mono text-sm text-brand lg:flex">
                 <span>&gt;_</span>
                 <span className="text-primary font-medium tracking-tight">atas</span>
             </div>
 
-            <ul className="flex-1 px-3 mt-2 space-y-1">
+            <ul className="flex flex-1 items-stretch justify-around px-1 lg:mt-2 lg:block lg:space-y-1 lg:px-3">
                 {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
                     const isActive = location.pathname === path;
                     return (
@@ -29,7 +29,7 @@ function Navigation() {
                                 type="button"
                                 onClick={() => navigate(path)}
                                 aria-current={isActive ? "page" : undefined}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors cursor-pointer ${
+                                className={`w-full h-full flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-lg text-[10px] transition-colors cursor-pointer lg:h-auto lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-2.5 lg:text-sm ${
                                     isActive
                                         ? "bg-brand/10 text-brand font-medium"
                                         : "text-secondary hover:bg-input hover:text-primary"
@@ -43,7 +43,7 @@ function Navigation() {
                 })}
             </ul>
 
-            <div className="p-3 border-t border-divider">
+            <div className="hidden p-3 border-t border-divider lg:block">
                 <button
                     type="button"
                     onClick={() => navigate("/")}

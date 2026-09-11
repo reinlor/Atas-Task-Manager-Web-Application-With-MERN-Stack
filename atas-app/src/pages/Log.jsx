@@ -71,7 +71,7 @@ export default function Log() {
     }
 
     return (
-        <div className="max-w-2xl">
+        <div className="w-full max-w-2xl">
             <h1 className="text-xl font-semibold text-primary mb-1">Activity log</h1>
             <p className="text-secondary text-sm mb-8">A running history of what's changed across your tasks and teams.</p>
 
@@ -82,12 +82,12 @@ export default function Log() {
                             {group.label}
                         </p>
 
-                        <div className="relative pl-6 border-l border-divider space-y-5">
+                        <div className="relative pl-5 border-l border-divider space-y-5 sm:pl-6">
                             {group.items.map((entry) => {
                                 const Icon = TYPE_ICON[entry.type] ?? HistoryIcon;
                                 return (
                                     <div key={entry.id} className="relative">
-                                        <span className="absolute -left-7.25 top-0.5 w-4 h-4 rounded-full bg-input border-2 border-brand flex items-center justify-center">
+                                        <span className="absolute -left-6.25 top-0.5 w-4 h-4 rounded-full bg-input border-2 border-brand flex items-center justify-center sm:-left-7.25">
                                             <Icon className="w-2 h-2 text-brand" strokeWidth={2.5} />
                                         </span>
                                         <p className="text-sm text-primary">{entry.text}</p>

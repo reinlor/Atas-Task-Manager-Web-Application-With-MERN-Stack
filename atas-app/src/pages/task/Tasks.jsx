@@ -307,8 +307,8 @@ export default function Tasks() {
             />
 
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <div className="flex min-w-0 items-center gap-3">
                     <button
                         type="button"
                         onClick={() => navigate('/task')}
@@ -323,7 +323,7 @@ export default function Tasks() {
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:gap-3">
                     <div className="relative inline-flex items-center bg-input border border-divider rounded-lg p-1">
                         <div
                             className="absolute top-1 bottom-1 rounded-md bg-brand transition-all duration-200 ease-out"
@@ -381,9 +381,9 @@ export default function Tasks() {
 
             {mode === 'view' ? (
                 <FadeIn key="view" className="max-w-3xl mx-auto w-full">
-                    <div className="flex items-center gap-3 mb-6">
-                        <h1 className="text-2xl font-semibold text-primary">{title}</h1>
-                        <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-input border border-divider ${statusStyle.text}`}>
+                    <div className="flex flex-wrap items-center gap-3 mb-6">
+                        <h1 className="min-w-0 break-words text-xl font-semibold text-primary sm:text-2xl">{title}</h1>
+                        <span className={`inline-flex shrink-0 items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-input border border-divider ${statusStyle.text}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
                             {status}
                         </span>
@@ -404,20 +404,20 @@ export default function Tasks() {
                 </FadeIn>
             ) : (
                 <FadeIn key="edit" className="flex flex-col flex-1 min-h-0">
-                    <div className="flex items-start gap-3 mb-4">
+                    <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start">
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             maxLength={150}
                             placeholder="Untitled task"
-                            className="flex-1 bg-transparent text-2xl font-semibold text-primary placeholder-accent-color/60 outline-none border-b border-divider focus:border-brand pb-2 transition-colors"
+                            className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-primary placeholder-accent-color/60 outline-none border-b border-divider focus:border-brand pb-2 transition-colors sm:text-2xl"
                         />
                         <div className="relative shrink-0">
                             <select
                                 value={status}
                                 onChange={(e) => setStatus(e.target.value)}
-                                className="appearance-none bg-input border border-divider rounded-lg pl-3 pr-8 py-2 text-sm text-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
+                                className="w-full appearance-none bg-input border border-divider rounded-lg pl-3 pr-8 py-2 text-sm text-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer sm:w-auto"
                             >
                                 <option value="Pending">Pending</option>
                                 <option value="In Progress">In Progress</option>
