@@ -19,7 +19,7 @@ exports.getDashboardByID = async (req, res) => {
             : await Activity.find({ userId })
                 .populate('actorId', 'username')
                 .sort({ createdAt: -1 })
-                .limit(100);
+                .limit(5);
 
         const myTeams = await Team.find({
             $or: [{ owner: userId }, { 'members.user': userId }]
