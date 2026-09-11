@@ -8,6 +8,9 @@ import { TaskIcon } from "../../component/Icons";
 export default function TaskList() {
     const [tasks, setTasks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [status, setStatus] = useState("all");
+    const [sort, setSort] = useState("latest");
+    const [scope, setScope] = useState("all");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -15,7 +18,10 @@ export default function TaskList() {
             try {
                 const response = await axios.get(
                     `${import.meta.env.VITE_API_BASE_URL}/api/task/get`,
-                    { withCredentials: true }
+                    {
+                        withCredentials: true,
+                        params: { status, sort, scope }
+                    }
                 );
                 setTasks(response.data.tasks ?? response.data);
             } catch (err) {
@@ -26,7 +32,7 @@ export default function TaskList() {
             }
         };
         fetchTasks();
-    }, []);
+    }, [scope, sort, status]);
 
     const handleCreateTask = async () => {
         try {
@@ -54,6 +60,39 @@ export default function TaskList() {
                 >
                     + New task
                 </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-6">
+                <select
+                    value={status}
+                    onChange={(event) => setStatus(event.target.value)}
+                    aria-label="Filter tasks by status"
+                    className="bg-input border border-divider rounded-lg px-3 py-2 text-sm text-primary outline-none focus:border-brand"
+                >
+                    <option value="all">All status</option>
+                    <option value="pending">Pending</option>
+                    <option value="in progress">In progress</option>
+                    <option value="complete">Completed</option>
+                </select>
+                <select
+                    value={sort}
+                    onChange={(event) => setSort(event.target.value)}
+                    aria-label="Sort tasks"
+                    className="bg-input border border-divider rounded-lg px-3 py-2 text-sm text-primary outline-none focus:border-brand"
+                >
+                    <option value="latest">Latest</option>
+                    <option value="oldest">Oldest</option>
+                </select>
+                <select
+                    value={scope}
+                    onChange={(event) => setScope(event.target.value)}
+                    aria-label="Filter task scope"
+                    className="bg-input border border-divider rounded-lg px-3 py-2 text-sm text-primary outline-none focus:border-brand"
+                >
+                    <option value="all">All tasks</option>
+                    <option value="local">Local tasks</option>
+                    <option value="shared">Shared tasks</option>
+                </select>
             </div>
 
             {isLoading ? (

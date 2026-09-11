@@ -1,4 +1,5 @@
 const dashboard = require('../models/dashboardModel');
+const { invalidateUserCaches } = require('./cacheService');
 
 exports.createOrUpdateEmitDashboard = async ({
     userId,
@@ -10,15 +11,14 @@ exports.createOrUpdateEmitDashboard = async ({
     try {
         const { inProgress = 0, completed = 0, shared = 0 } = stats;
         const { title, status } = recentTask;
-        const { text } = recentActivity;
 
         // Pipeline Update to transform/update inside a database 🥀
         const pipeline = [
             {
                 $set: {
-                    "stats.inProgress": { $add: [{ $ifNull: ["$stats.inProgress", 0] }, inProgress] },
-                    "stats.completed": { $add: [{ $ifNull: ["$stats.completed", 0] }, completed] },
-                    "stats.shared": { $add: [{ $ifNull: ["$stats.shared", 0] }, shared] }
+                    "stats.inProgress": { $max: [0, { $add: [{ $ifNull: ["$stats.inProgress", 0] }, inProgress] }] },
+                    "stats.completed": { $max: [0, { $add: [{ $ifNull: ["$stats.completed", 0] }, completed] }] },
+                    "stats.shared": { $max: [0, { $add: [{ $ifNull: ["$stats.shared", 0] }, shared] }] }
                 }
             },
             {
@@ -39,30 +39,22 @@ exports.createOrUpdateEmitDashboard = async ({
 
         let dash = await dashboard.findOneAndUpdate({ userId }, pipeline, options);
 
-        // for pushing recentTask and recentActivity if it exist
-        if ((title && status) || text) {
+        // Recent activity is read from Activity; the dashboard stores only counters and task snapshots.
+        if (title && status) {
             const pushOps = {};
-            if (title && status) {
-                pushOps.recentTask = {
-                    $each: [{ title, status, timestamp: new Date() }],
-                    $position: 0,
-                    $slice: 10
-                };
-            }
-            if (text) {
-                pushOps.recentActivity = {
-                    $each: [{ text, timestamp: new Date() }],
-                    $position: 0,
-                    $slice: 10
-                };
-            }
- 
+            pushOps.recentTask = {
+                $each: [{ title, status, timestamp: new Date() }],
+                $position: 0,
+                $slice: 10
+            };
             dash = await dashboard.findOneAndUpdate(
                 { userId },
                 { $push: pushOps },
                 { new: true, session }
             );
         }
+
+        await invalidateUserCaches(userId);
 
         return dash;
     } catch (error) {

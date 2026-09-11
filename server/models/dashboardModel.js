@@ -12,10 +12,6 @@ const dashboardSchema = new mongoose.Schema({
         status: { type: String },
         timestamp: { type: Date, default: Date.now }
     }],
-    recentActivity: [{
-        text: { type: String },
-        timestamp: { type: Date, default: Date.now }
-    }],
     userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Account' }
 }, { timestamps: true });
 

@@ -1,23 +1,15 @@
 import { HistoryIcon, TaskIcon, TeamIcon } from "../component/Icons";
-
-// Temp Data
-// TODO: Change into real data retrived from database
-const MOCK_LOG_ENTRIES = [
-    { id: "1", type: "task_created", text: 'You created "Sprint planning"', date: "2026-08-30T09:14:00" },
-    { id: "2", type: "task_shared", text: 'You shared "Sprint planning" with Marketing Team', date: "2026-08-30T09:16:00" },
-    { id: "3", type: "task_updated", text: 'Jordan updated "Q3 Roadmap"', date: "2026-08-30T11:02:00" },
-    { id: "4", type: "role_changed", text: "Alex changed your role to Editor on Marketing Team", date: "2026-08-29T15:40:00" },
-    { id: "5", type: "task_completed", text: 'You marked "Fix login bug" as Complete', date: "2026-08-29T10:05:00" },
-    { id: "6", type: "member_added", text: "You added Jordan to Marketing Team", date: "2026-08-28T17:22:00" },
-    { id: "7", type: "task_created", text: 'You created "Client onboarding"', date: "2026-08-28T08:50:00" },
-    { id: "8", type: "team_created", text: 'You created the team "Marketing Team"', date: "2026-08-27T13:10:00" },
-];
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const TYPE_ICON = {
     task_created: TaskIcon,
     task_updated: TaskIcon,
     task_completed: TaskIcon,
+    task_deleted: TaskIcon,
     task_shared: TeamIcon,
+    task_unshared: TeamIcon,
     role_changed: TeamIcon,
     member_added: TeamIcon,
     team_created: TeamIcon,
@@ -44,7 +36,7 @@ function formatTime(dateStr) {
 function groupByDay(entries) {
     const groups = [];
     for (const entry of entries) {
-        const label = formatDateLabel(entry.date);
+        const label = formatDateLabel(entry.createdAt);
         const existing = groups.find((g) => g.label === label);
         if (existing) existing.items.push(entry);
         else groups.push({ label, items: [entry] });
@@ -53,8 +45,34 @@ function groupByDay(entries) {
 }
 
 export default function Log() {
-    const sorted = [...MOCK_LOG_ENTRIES].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const { user } = useAuth();
+    const [entries, setEntries] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const fetchActivities = async () => {
+            try {
+                const response = await axios.get(
+                    `${import.meta.env.VITE_API_BASE_URL}/api/activity`,
+                    { withCredentials: true }
+                );
+                setEntries(response.data.activities ?? []);
+            } catch (err) {
+                setError(err.response?.data?.message || "Failed to load activity.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchActivities();
+    }, []);
+
+    const sorted = [...entries].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     const groups = groupByDay(sorted);
+
+    if (isLoading) return <p className="text-secondary text-sm">Loading activity…</p>;
+    if (error) return <p className="text-danger text-sm">{error}</p>;
 
     if (sorted.length === 0) {
         return (
@@ -85,13 +103,18 @@ export default function Log() {
                         <div className="relative pl-5 border-l border-divider space-y-5 sm:pl-6">
                             {group.items.map((entry) => {
                                 const Icon = TYPE_ICON[entry.type] ?? HistoryIcon;
+                                const isActor = entry.actorId === user?._id || entry.actorId?._id === user?._id;
+                                const actorName = entry.actorId?.username || "Someone";
+                                const text = isActor
+                                    ? `You ${entry.text}`
+                                    : `${actorName} ${entry.text}`;
                                 return (
-                                    <div key={entry.id} className="relative">
+                                    <div key={entry._id} className="relative">
                                         <span className="absolute -left-6.25 top-0.5 w-4 h-4 rounded-full bg-input border-2 border-brand flex items-center justify-center sm:-left-7.25">
                                             <Icon className="w-2 h-2 text-brand" strokeWidth={2.5} />
                                         </span>
-                                        <p className="text-sm text-primary">{entry.text}</p>
-                                        <p className="text-xs text-accent-color mt-0.5">{formatTime(entry.date)}</p>
+                                        <p className="text-sm text-primary">{text}</p>
+                                        <p className="text-xs text-accent-color mt-0.5">{formatTime(entry.createdAt)}</p>
                                     </div>
                                 );
                             })}

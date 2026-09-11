@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 // Markdown Imports
@@ -12,6 +12,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
 import axios from "axios";
+import { io } from "socket.io-client";
 import { toast } from "react-toastify";
 import { ChevronDownIcon, MoreIcon } from "../../component/Icons";
 import { useTaskEditor } from "../../context/TaskEditorContext";
@@ -91,6 +92,10 @@ export default function Tasks() {
     const [canEdit, setCanEdit] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+    const [participants, setParticipants] = useState([]);
+    const socketRef = useRef(null);
+    const applyingRemoteChangeRef = useRef(false);
     const [mode, setMode] = useState(searchParams.get("new") === "true" ? "edit" : "view");
 
     // Delete confirmation
@@ -101,7 +106,8 @@ export default function Tasks() {
 
     const canSave = (title ?? "").trim().length > 0;
 
-    const handleSaveTask = async () => {
+    const saveTask = useCallback(async ({ quiet = false } = {}) => {
+        if (!canSave || !canEdit) return;
         try {
             setIsSaving(true)
             const response = await axios.patch(
@@ -110,15 +116,20 @@ export default function Tasks() {
                 { withCredentials: true }
             )
             if (response.status === 200) {
-                toast.success('Task updated')
-                setMode('view')
+                setIsDirty(false)
+                if (!quiet) {
+                    toast.success('Task updated')
+                    setMode('view')
+                }
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Update failed.')
+            if (!quiet) toast.error(err.response?.data?.message || 'Update failed.')
         } finally {
             setIsSaving(false)
         }
-    }
+    }, [canEdit, canSave, markdown, status, taskId, title]);
+
+    const handleSaveTask = () => saveTask();
 
     const handleDelete = async () => {
         try {
@@ -170,6 +181,7 @@ export default function Tasks() {
                 setTeam(response.data.team ?? null)
                 setIsOwner(Boolean(response.data.isOwner))
                 setCanEdit(Boolean(response.data.canEdit))
+                setIsDirty(false)
             } catch (err) {
                 toast.error(err.response?.data?.message || 'Failed to load task.')
             } finally {
@@ -178,6 +190,51 @@ export default function Tasks() {
         }
         fetchTask();
     }, [taskId])
+
+    useEffect(() => {
+        if (isLoading || !taskId) return;
+
+        const socket = io(import.meta.env.VITE_API_BASE_URL, { withCredentials: true });
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+            socket.emit('join_task', taskId, (result) => {
+                if (result?.error) toast.error(result.error);
+            });
+        });
+        socket.on('task_presence', ({ users }) => setParticipants(users ?? []));
+        socket.on('task_change', (change) => {
+            applyingRemoteChangeRef.current = true;
+            if (typeof change.title === 'string') setTitle(change.title);
+            if (typeof change.content === 'string') setMarkdown(change.content);
+            if (typeof change.status === 'string') setStatus(change.status);
+            setIsDirty(false);
+            applyingRemoteChangeRef.current = false;
+        });
+
+        return () => {
+            socket.disconnect();
+            socketRef.current = null;
+            setParticipants([]);
+        };
+    }, [isLoading, taskId]);
+
+    useEffect(() => {
+        if (!isDirty || isLoading || mode !== 'edit' || !canEdit) return;
+
+        const saveTimer = setTimeout(() => saveTask({ quiet: true }), 800);
+        return () => clearTimeout(saveTimer);
+    }, [isDirty, isLoading, mode, canEdit, saveTask]);
+
+    const broadcastChange = (change) => {
+        if (applyingRemoteChangeRef.current) return;
+        setIsDirty(true);
+        socketRef.current?.emit('task_change', change);
+    };
+
+    const handleEditing = (editing) => {
+        socketRef.current?.emit('task_editing', editing);
+    };
 
     useEffect(() => {
         if (!isLoading && !canEdit && mode === 'edit') setMode('view');
@@ -321,6 +378,17 @@ export default function Tasks() {
                             Shared
                         </span>
                     )}
+                    {participants.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-secondary">
+                            <span className="w-1.5 h-1.5 rounded-full bg-brand" />
+                            {participants.length} in room
+                            {participants.some((participant) => participant.editing) && (
+                                <span className="text-brand">
+                                    · {participants.filter((participant) => participant.editing).map((participant) => participant.username).join(', ')} editing
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:gap-3">
@@ -372,7 +440,7 @@ export default function Tasks() {
                                 title={!canSave ? 'Title is required' : undefined}
                                 cstyle="px-4 py-2 rounded-lg text-sm font-semibold bg-brand text-main hover:brightness-110 active:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
-                                {isSaving ? 'Saving…' : 'Save'}
+                                {isSaving ? 'Saving…' : isDirty ? 'Save' : 'Saved'}
                             </Button>
                         </FadeIn>
                     )}
@@ -382,7 +450,7 @@ export default function Tasks() {
             {mode === 'view' ? (
                 <FadeIn key="view" className="max-w-3xl mx-auto w-full">
                     <div className="flex flex-wrap items-center gap-3 mb-6">
-                        <h1 className="min-w-0 break-words text-xl font-semibold text-primary sm:text-2xl">{title}</h1>
+                        <h1 className="min-w-0 wrap-break-word text-xl font-semibold text-primary sm:text-2xl">{title}</h1>
                         <span className={`inline-flex shrink-0 items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-input border border-divider ${statusStyle.text}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
                             {status}
@@ -408,7 +476,12 @@ export default function Tasks() {
                         <input
                             type="text"
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={(e) => {
+                                setTitle(e.target.value);
+                                broadcastChange({ title: e.target.value });
+                            }}
+                            onFocus={() => handleEditing(true)}
+                            onBlur={() => handleEditing(false)}
                             maxLength={150}
                             placeholder="Untitled task"
                             className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-primary placeholder-accent-color/60 outline-none border-b border-divider focus:border-brand pb-2 transition-colors sm:text-2xl"
@@ -416,7 +489,12 @@ export default function Tasks() {
                         <div className="relative shrink-0">
                             <select
                                 value={status}
-                                onChange={(e) => setStatus(e.target.value)}
+                                onChange={(e) => {
+                                    setStatus(e.target.value);
+                                    broadcastChange({ title, content: markdown, status: e.target.value });
+                                }}
+                                onFocus={() => handleEditing(true)}
+                                onBlur={() => handleEditing(false)}
                                 className="w-full appearance-none bg-input border border-divider rounded-lg pl-3 pr-8 py-2 text-sm text-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer sm:w-auto"
                             >
                                 <option value="Pending">Pending</option>
@@ -435,7 +513,12 @@ export default function Tasks() {
                             <textarea
                                 ref={markdownRef}
                                 value={markdown}
-                                onChange={(e) => setMarkdown(e.target.value)}
+                                onChange={(e) => {
+                                    setMarkdown(e.target.value);
+                                    broadcastChange({ content: e.target.value });
+                                }}
+                                onFocus={() => handleEditing(true)}
+                                onBlur={() => handleEditing(false)}
                                 onSelect={handleTextareaSelect}
                                 placeholder="Start writing..."
                                 className="flex-1 resize-none bg-transparent p-4 text-sm font-mono text-primary placeholder-accent-color/70 outline-none focus:ring-2 focus:ring-inset focus:ring-brand/30"

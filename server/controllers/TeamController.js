@@ -1,6 +1,7 @@
 const Team = require('../models/teamModel');
 const redisClient = require('../config/redis');
 const { createAndEmitNotification } = require('../services/notificationService');
+const { invalidateUserCaches } = require('../services/cacheService');
 
 // TODO: Add dashboard service on this controller
 
@@ -48,6 +49,7 @@ exports.createTeam = async (req, res) => {
                 }
             }
         }
+        await Promise.all((members || []).map((member) => invalidateUserCaches(member.user)));
 
         return res.status(201).json({ 
             message: 'Team created successfully', 
@@ -97,6 +99,7 @@ exports.updateTeam = async (req, res) => {
         const existingMemberMap = new Map(
             team.members.map((m) => [m.user.toString(), m.role])
         );
+        const previousMemberIds = team.members.map((member) => member.user.toString());
 
         if (name) team.name = name;
         if (members) team.members = members;
@@ -132,6 +135,11 @@ exports.updateTeam = async (req, res) => {
                 }
             }
         }
+        await Promise.all([
+            userId,
+            ...previousMemberIds,
+            ...(members || []).map((member) => member.user.toString())
+        ].map((affectedUserId) => invalidateUserCaches(affectedUserId)));
 
         return res.status(200).json({
             message: 'Team updated successfully',
@@ -180,6 +188,10 @@ exports.deleteTeam = async (req, res) => {
         }
 
         await Team.findByIdAndDelete(teamId);
+        await Promise.all([
+            userId,
+            ...team.members.map((member) => member.user.toString())
+        ].map((affectedUserId) => invalidateUserCaches(affectedUserId)));
         return res.status(200).json({ message: 'Team deleted successfully' });
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });

@@ -19,14 +19,17 @@ const taskRoute = require('./routes/taskRoute')
 const teamRoute = require('./routes/teamRoute')
 const geminiRoute = require('./routes/geminiRoute')
 const notificationRoute = require('./routes/notificationRoute');
+const activityRoute = require('./routes/activityRoute');
 const dashboardRoute = require('./routes/dashboardRoute')
 const authToken = require('./config/authentication')
+const taskSocket = require('./sockets/taskSocket');
 
 // Socket Io Connection
 io.on('connection', (socket) => {
     socket.on('join_bell', (userId) => {
-        if (userId) socket.join(userId);
+        if (userId && userId === socket.user.id) socket.join(userId);
     });
+    taskSocket(io, socket);
 });
 
 // list of allowed uri
@@ -59,6 +62,7 @@ app.use("/api/account", accountRoute);
 app.use("/api/task", authToken, taskRoute);
 app.use("/api/team", authToken, teamRoute);
 app.use("/api/notification", authToken, notificationRoute);
+app.use("/api/activity", authToken, activityRoute);
 app.use("/api/ai", geminiRoute)
 app.use("/api/dashboard", authToken, dashboardRoute)
 

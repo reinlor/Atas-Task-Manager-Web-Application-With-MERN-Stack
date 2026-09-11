@@ -9,6 +9,8 @@ const { transactionRunService } = require('../services/transactionRunService')
 // services
 const { createAndEmitNotification } = require('../services/notificationService');
 const { createOrUpdateEmitDashboard } = require('../services/dashboardService');
+const { createActivityForUsers } = require('../services/activityService');
+const { getJson, setJson, invalidateUserCaches, invalidateTaskCaches } = require('../services/cacheService');
 
 const truncate = (str, maxLength = 20) => {
     if (!str) return '';
@@ -48,6 +50,13 @@ exports.createTask = async (req, res) => {
             });
             return createdTask;
         })
+        await createActivityForUsers({
+            userIds: [id],
+            actorId: id,
+            type: 'task_created',
+            text: `created "${newTask.title}"`
+        });
+        await invalidateUserCaches(id)
         await redisClient.del(taskCacheKey)
 
         return res.status(201).json({
@@ -93,13 +102,25 @@ async function notifyAndUpdateDashboards(recipientIds, { type, text }) {
         try {
             await createOrUpdateEmitDashboard({
                 userId: recipientId,
-                stats: { shared: type === 'share' ? 1 : 0 },
+                stats: { shared: 0 },
                 recentActivity: { text }
             });
         } catch (err) {
             console.error(`Failed to update dashboard for ${recipientId}:`, err.message);
         }
     }
+}
+
+async function getSharedUserIds(teamId, creatorId) {
+    const teamDoc = await Team.findById(teamId).select('owner members');
+    if (!teamDoc) return [];
+
+    const userIds = new Set([
+        teamDoc.owner.toString(),
+        ...teamDoc.members.map((member) => member.user.toString())
+    ]);
+    userIds.delete(creatorId.toString());
+    return [...userIds];
 }
 
 // Controller to update raw markdown task to the database
@@ -124,17 +145,67 @@ exports.updateTask = async (req, res) => {
         }
  
         const initialTeamId = currentTask.team ? currentTask.team.toString() : null;
+        const initialStatus = currentTask.status;
  
         Object.assign(currentTask, updates);
         const updatedTask = await currentTask.save();
+        const actor = await Account.findById(userId).select('username');
+        const actorName = truncate(actor?.username || 'Someone', 15);
+        const taskTitle = truncate(updatedTask.title, 20);
+
+        if (initialStatus !== updatedTask.status) {
+            await createOrUpdateEmitDashboard({
+                userId: updatedTask.createdBy,
+                stats: {
+                    inProgress: (updatedTask.status === 'Pending' || updatedTask.status === 'In Progress' ? 1 : 0)
+                        - (initialStatus === 'Pending' || initialStatus === 'In Progress' ? 1 : 0),
+                    completed: (updatedTask.status === 'Complete' ? 1 : 0)
+                        - (initialStatus === 'Complete' ? 1 : 0)
+                }
+            });
+        }
  
         const newTeamId = updatedTask.team ? updatedTask.team.toString() : null;
+        const affectedUserIds = new Set([userId, updatedTask.createdBy.toString()]);
+
+        if (initialTeamId !== newTeamId) {
+            const previousRecipients = initialTeamId
+                ? await getSharedUserIds(initialTeamId, updatedTask.createdBy)
+                : [];
+            const nextRecipients = newTeamId
+                ? await getSharedUserIds(newTeamId, updatedTask.createdBy)
+                : [];
+
+            previousRecipients.forEach((recipientId) => affectedUserIds.add(recipientId));
+            nextRecipients.forEach((recipientId) => affectedUserIds.add(recipientId));
+
+            await Promise.all(previousRecipients.map((recipientId) =>
+                createOrUpdateEmitDashboard({ userId: recipientId, stats: { shared: -1 } })
+            ));
+            await Promise.all(nextRecipients.map((recipientId) =>
+                createOrUpdateEmitDashboard({ userId: recipientId, stats: { shared: 1 } })
+            ));
+
+            await createActivityForUsers({
+                userIds: [userId, ...previousRecipients, ...nextRecipients],
+                actorId: userId,
+                type: newTeamId ? 'task_shared' : 'task_unshared',
+                text: newTeamId
+                    ? `shared "${taskTitle}" with a team`
+                    : `stopped sharing "${taskTitle}"`
+            });
+        } else {
+            const recipients = newTeamId ? await getSharedUserIds(newTeamId, updatedTask.createdBy) : [];
+            recipients.forEach((recipientId) => affectedUserIds.add(recipientId));
+            await createActivityForUsers({
+                userIds: [updatedTask.createdBy, ...recipients],
+                actorId: userId,
+                type: initialStatus !== updatedTask.status ? 'task_completed' : 'task_updated',
+                text: `updated "${taskTitle}"`
+            });
+        }
  
         if (newTeamId) {
-            const actor = await Account.findById(userId).select('username');
-            const actorName = truncate(actor?.username || 'Someone', 15);
-            const taskTitle = truncate(updatedTask.title, 20);
- 
             if (!initialTeamId) {
                 // Scenario 1: task was newly shared with a team
                 const teamDoc = await Team.findById(newTeamId);
@@ -180,7 +251,8 @@ exports.updateTask = async (req, res) => {
         }
  
         await redisClient.del(`task:${userId}`);
-        await redisClient.del(`tasklist:${taskId}`);
+        await Promise.all([...affectedUserIds].map((affectedUserId) => invalidateUserCaches(affectedUserId)));
+        await invalidateTaskCaches(taskId);
  
         res.status(200).json({
             message: 'Task updated successfully',
@@ -201,13 +273,24 @@ exports.getTask = async (req, res) => {
             return res.status(400).json({ message: 'Invalid task ID format' });
         }
 
-        const cacheKey = `task:${id}`
-        const cachedTask = await redisClient.get(cacheKey)
-        if (cachedTask) {
-            console.log('Retrieve using cache');
-            return res.status(200).json(
-                JSON.parse(cachedTask)
-            )
+        const statusParam = (req.query.status || 'all').toLowerCase();
+        const sortParam = (req.query.sort || 'latest').toLowerCase();
+        const scopeParam = (req.query.scope || 'all').toLowerCase();
+        const validStatuses = { pending: 'Pending', 'in progress': 'In Progress', complete: 'Complete' };
+        const status = validStatuses[statusParam];
+        const sort = sortParam === 'oldest' ? { update: 1, created: 1 } : { update: -1, created: -1 };
+        const cacheKey = `tasks:${id}:${statusParam}:${sortParam}:${scopeParam}`;
+        const cachedTasks = await getJson(cacheKey);
+        if (cachedTasks) return res.status(200).json(cachedTasks);
+
+        if (statusParam !== 'all' && !status) {
+            return res.status(400).json({ message: 'Invalid status filter' });
+        }
+        if (!['all', 'latest', 'oldest'].includes(sortParam)) {
+            return res.status(400).json({ message: 'Invalid sort option' });
+        }
+        if (!['all', 'shared', 'local'].includes(scopeParam)) {
+            return res.status(400).json({ message: 'Invalid task scope' });
         }
 
         const myTeams = await Team.find({
@@ -215,18 +298,15 @@ exports.getTask = async (req, res) => {
         }).select('_id');
         const myTeamIds = myTeams.map((t) => t._id);
 
-        const myTask = await task.find({
-            $or: [
-                { createdBy: id },
-                { team: { $in: myTeamIds } }
-            ]
-        });
+        const visibility = scopeParam === 'local'
+            ? { createdBy: id, team: null }
+            : scopeParam === 'shared'
+                ? { team: { $in: myTeamIds } }
+                : { $or: [{ createdBy: id }, { team: { $in: myTeamIds } }] };
+        const filter = status ? { ...visibility, status } : visibility;
+        const myTask = await task.find(filter).sort(sort);
 
-        if (!myTask || myTask.length === 0) {
-            return res.status(404).json({ message: 'Task not found' });
-        }
-
-        await redisClient.set(cacheKey, JSON.stringify(myTask), { EX: 60 })
+        await setJson(cacheKey, myTask, 60);
 
         console.log('retrieve directly from database')
         res.status(200).json(myTask);
@@ -249,14 +329,9 @@ exports.getTaskById = async (req, res) => {
             return res.status(400).json({ message: 'Invalid task ID format' });
         }
 
-        const cacheKey = `tasklist:${pageId}`
-        const cachedTask = await redisClient.get(cacheKey)
-        if (cachedTask) {
-            console.log('Retrieve using cache');
-            return res.status(200).json(
-                JSON.parse(cachedTask)
-            )
-        }
+        const cacheKey = `task:${pageId}:${id}`;
+        const cachedTask = await getJson(cacheKey)
+        if (cachedTask) return res.status(200).json(cachedTask);
 
         const myTask = await task.findById(pageId);
 
@@ -271,7 +346,7 @@ exports.getTaskById = async (req, res) => {
 
         const responseBody = { ...myTask.toObject(), isOwner, canEdit };
 
-        await redisClient.set(cacheKey, JSON.stringify(responseBody), { EX: 60 })
+        await setJson(cacheKey, responseBody, 60)
 
         console.log('retrieve directly from database')
         res.status(200).json(responseBody);
@@ -286,9 +361,6 @@ exports.deleteTask = async (req, res) => {
         const { id } = req.user
         const docId = req.params.id
 
-        const taskCacheKey = `task:${id}`
-        const taskListCacheKey = `tasklist:${id}`
-
         console.log(`id: ${id}, docId: ${docId}`)
         const deletedItem = await task.findOneAndDelete({ _id: docId, createdBy: id })
 
@@ -296,10 +368,42 @@ exports.deleteTask = async (req, res) => {
             return res.status(404).json({ message: "Task not found", data: deletedItem })
         }
 
-        // TODO: Add Dashboard service for decrementation
+        const statusStats = {
+            inProgress: deletedItem.status === 'Pending' || deletedItem.status === 'In Progress' ? -1 : 0,
+            completed: deletedItem.status === 'Complete' ? -1 : 0
+        };
+        await createOrUpdateEmitDashboard({ userId: deletedItem.createdBy, stats: statusStats });
 
-        await redisClient.del(taskCacheKey)
-        await redisClient.del(taskListCacheKey)
+        if (deletedItem.team) {
+            const teamDoc = await Team.findById(deletedItem.team).select('owner members');
+            if (teamDoc) {
+                const recipientIds = new Set([
+                    teamDoc.owner.toString(),
+                    ...teamDoc.members.map((member) => member.user.toString())
+                ]);
+                recipientIds.delete(deletedItem.createdBy.toString());
+
+                for (const recipientId of recipientIds) {
+                    await createOrUpdateEmitDashboard({
+                        userId: recipientId,
+                        stats: { shared: -1 }
+                    });
+                }
+            }
+        }
+
+        const deletedRecipients = deletedItem.team
+            ? await getSharedUserIds(deletedItem.team, deletedItem.createdBy)
+            : [];
+        await createActivityForUsers({
+            userIds: [deletedItem.createdBy, ...deletedRecipients],
+            actorId: id,
+            type: 'task_deleted',
+            text: `deleted "${deletedItem.title}"`
+        });
+
+        await invalidateUserCaches(id)
+        await invalidateTaskCaches(docId)
 
         return res.status(200).json({ message: "Task Deleted Successfully" })
     } catch (error) {
