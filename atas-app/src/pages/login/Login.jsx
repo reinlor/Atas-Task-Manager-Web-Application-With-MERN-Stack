@@ -62,18 +62,27 @@ export default function Login() {
 
         try {
             setIsButtonLoading(true)
-            const response = await axios.post(
+            const response = await toast.promise(axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/login`,
                 { email, password },
                 { withCredentials: true }
-            )
-
-            toast(`Welcome back, ${response.data.username}!`);
+            ), {
+                pending: 'Signing you in...',
+                success: {
+                    render({ data }) {
+                        return `Welcome back, ${data.data.username}!`;
+                    }
+                },
+                error: {
+                    render({ data }) {
+                        return data.response?.data?.message || 'An error occurred during login.';
+                    }
+                }
+            });
 
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
             console.error(error.response?.data?.message || 'An error occurred during login.');
-            toast.error(error.response?.data?.message || 'An error occurred during login.')
         } finally {
             setIsButtonLoading(false)
         }
@@ -107,14 +116,22 @@ export default function Login() {
     const handleForgotPassword = async (e) => {
         try {
             setIsButtonLoading(true)
-            const response = await axios.post(
-                `${import.meta.env.VITE_API_BASE_URL}/api/account/forgotPass`, { email })
+            const response = await toast.promise(axios.post(
+                `${import.meta.env.VITE_API_BASE_URL}/api/account/forgotPass`, { email }), {
+                pending: 'Sending reset link...',
+                success: 'Reset link sent successfully.',
+                error: {
+                    render({ data }) {
+                        return data.response?.data?.message || 'Unable to send reset link.';
+                    }
+                }
+            });
 
             if (response.status === 200) {
                 displayModal("Reset Password", response?.data?.message)
             }
         } catch (error) {
-            toast.error(error?.response?.data?.message)
+            console.error(error?.response?.data?.message || 'Unable to send reset link.')
         } finally {
             setIsButtonLoading(false)
         }

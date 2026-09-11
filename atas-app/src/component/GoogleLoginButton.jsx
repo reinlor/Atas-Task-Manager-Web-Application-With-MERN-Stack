@@ -9,17 +9,23 @@ export default function GoogleLoginButton() {
     const handleSuccess = async (credentialResponse) => {
         try {
             const idToken = credentialResponse.credential;
-            const response = await axios.post(
+            const response = await toast.promise(axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/account/auth/google`,
                 { idToken },
                 { withCredentials: true }
-            );
+            ), {
+                pending: 'Signing you in with Google...',
+                success: {
+                    render({ data }) {
+                        return `Welcome, ${data.data.username}!`;
+                    }
+                },
+                error: 'Server error. Please try again.'
+            });
 
-            toast(`Welcome, ${response.data.username}!`);
             if (response.status === 200) navigate('/dashboard');
         } catch (error) {
             console.error('Login Failed:', error.response?.data || error.message);
-            toast.error('Server error. Please try again.');
         }
     };
 
