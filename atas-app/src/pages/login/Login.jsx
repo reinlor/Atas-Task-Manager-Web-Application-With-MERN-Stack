@@ -162,7 +162,7 @@ export default function Login() {
                     <p className="font-semibold">Some parts are still underdevelopment</p>
                 </div>
 
-                <div className="relative w-full min-h-[380px] grid grid-cols-1 items-start">
+                <div className="relative w-full min-h-[380px] grid grid-cols-1 items-start min-w-0">
 
                     {/* Login Form */}
                     <div className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-in-out ${activeForm === "login" ? activeStyles : hiddenStyles}`}>
@@ -230,7 +230,6 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                             value={email}
                             onChange={onChange}
                             placeholder="you@example.com"
-
                         />
                     </div>
 

@@ -30,7 +30,7 @@ export default function GoogleLoginButton() {
     };
 
     return (
-        <div className="w-full rounded-lg overflow-hidden [&>div]:w-full [&_iframe]:w-full">
+        <div className="w-full flex justify-center rounded-lg overflow-hidden [&>div]:w-full [&_iframe]:w-full">
             <GoogleLogin
                 onSuccess={handleSuccess}
                 onError={() => console.log('Google Sign-In Cancelled/Failed')}
@@ -38,7 +38,6 @@ export default function GoogleLoginButton() {
                 shape="rectangular"
                 size="large"
                 text="continue_with"
-                width="384"
             />
         </div>
     );
