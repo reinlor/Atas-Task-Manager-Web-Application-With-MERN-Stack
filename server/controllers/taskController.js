@@ -3,14 +3,13 @@ const Team = require('../models/teamModel');
 const Account = require('../models/accountModel');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const redisClient = require('../config/redis');
 const { transactionRunService } = require('../services/transactionRunService')
 
 // services
 const { createAndEmitNotification } = require('../services/notificationService');
 const { createOrUpdateEmitDashboard } = require('../services/dashboardService');
 const { createActivityForUsers } = require('../services/activityService');
-const { getJson, setJson, invalidateUserCaches, invalidateTaskCaches } = require('../services/cacheService');
+const { getJson, setJson, deleteKeys, invalidateUserCaches, invalidateTaskCaches } = require('../services/cacheService');
 
 const truncate = (str, maxLength = 20) => {
     if (!str) return '';
@@ -57,7 +56,7 @@ exports.createTask = async (req, res) => {
             text: `created "${newTask.title}"`
         });
         await invalidateUserCaches(id)
-        await redisClient.del(taskCacheKey)
+        await deleteKeys(taskCacheKey)
 
         return res.status(201).json({
             _id: newTask._id,
@@ -250,7 +249,6 @@ exports.updateTask = async (req, res) => {
             }
         }
  
-        await redisClient.del(`task:${userId}`);
         await Promise.all([...affectedUserIds].map((affectedUserId) => invalidateUserCaches(affectedUserId)));
         await invalidateTaskCaches(taskId);
  

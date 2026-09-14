@@ -230,4 +230,4 @@ Socket events make the interface feel immediate, while debounced HTTP PATCH requ
 
 ## License
 
-This project is currently intended for educational and portfolio use.
+This project is currently intended for educational and portfolio use. Add a formal license before distributing it publicly.
