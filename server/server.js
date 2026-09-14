@@ -21,6 +21,7 @@ const mongoose = require("mongoose");
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const http = require('http');
+const helmet = require('helmet');
 
 const app = express();
 const server = http.createServer(app);
@@ -37,6 +38,20 @@ const activityRoute = require('./routes/activityRoute');
 const dashboardRoute = require('./routes/dashboardRoute')
 const authToken = require('./config/authentication')
 const taskSocket = require('./sockets/taskSocket');
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        
+        frameAncestors: ["'self'", 
+          'http://localhost:5173', 
+          process.env.ORIGIN_URI],
+      },
+    },
+  })
+);
 
 // Socket Io Connection
 io.on('connection', (socket) => {
