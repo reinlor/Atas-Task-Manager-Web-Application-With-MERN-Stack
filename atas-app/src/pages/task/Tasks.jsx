@@ -279,9 +279,7 @@ export default function Tasks() {
         if (!selectedText) return;
 
         // attempts to remove/strip basic md
-        console.log('Text: ', selectedText)
         const cleanText = selectedText.replace(/[*_~#`>]/g, "").trim();
-        console.log('Clean Text: ', cleanText)
         if (!cleanText) return;
 
         const treeWalker = document.createTreeWalker(

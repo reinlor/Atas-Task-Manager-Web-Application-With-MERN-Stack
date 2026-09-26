@@ -6,6 +6,7 @@ const ai = new GoogleGenAI({
 
 const generateTextFromGemini = async (promptText) => {
   try {
+    console.log("Current Mode: ", process.env.GEMINI_MODEL)
     const response = await ai.models.generateContent({
       model: process.env.GEMINI_MODEL ,
       contents: promptText,
