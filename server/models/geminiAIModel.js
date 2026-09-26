@@ -7,7 +7,7 @@ const ai = new GoogleGenAI({
 const generateTextFromGemini = async (promptText) => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: process.env.GEMINI_MODEL ,
       contents: promptText,
       config: {
         systemInstruction: `You are an expert project management AI. Your job is to generate clear, structured, well-formatted Markdown for task management. 

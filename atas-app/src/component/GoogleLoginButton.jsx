@@ -38,7 +38,6 @@ export default function GoogleLoginButton() {
                 shape="rectangular"
                 size="large"
                 text="continue_with"
-                width='100%'
             />
         </div>
     );
