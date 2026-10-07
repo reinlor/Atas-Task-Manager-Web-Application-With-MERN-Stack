@@ -8,6 +8,7 @@ import axios from "axios";
 const PAGE_TITLES = [
     { match: (path) => path === "/dashboard", title: "Dashboard" },
     { match: (path) => path.startsWith("/task"), title: "Tasks" },
+    { match: (path) => path.startsWith("/kanban-test"), title: "Kanban Board (Test)" },
     { match: (path) => path === "/log", title: "Log" },
     { match: (path) => path === "/team", title: "Team" },
 ];

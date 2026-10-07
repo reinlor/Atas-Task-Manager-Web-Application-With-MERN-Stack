@@ -14,6 +14,9 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPass from './pages/ForgotPass';
 import Aichat from './component/AIchat';
 
+// Test Page for Kanban TODO:Remove/delete after test
+import KanbanTest from './pages/KanbanTest';
+
 // Layout Imports
 import Layout from './layout/Layout';
 
@@ -54,10 +57,11 @@ function App() {
             <Route path="/task/:taskId" element={<Tasks />} />
             <Route path='/log' element={<Log />} />
             <Route path='/team' element={<Team />} />
+            <Route path='/kanban-test' element={<KanbanTest />} />
           </Route>
         </Routes>
 
-        {location.pathname.includes('/task') ? <Aichat /> : null}
+        {location.pathname.includes('/task') || location.pathname.includes('/kanban-test') ? <Aichat /> : null}
       </TaskEditorProvider>
     </AuthProvider>
   )
