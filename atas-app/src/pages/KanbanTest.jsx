@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import Button from "../component/Button";
 import TextInput from "../component/TextInput";
 import { useAuth } from "../context/AuthContext";
+import CardDetailsModal from "../component/CardDetailModal";
 
 export default function KanbanTest() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function KanbanTest() {
   const [newCardTitle, setNewCardTitle] = useState("");
   const [activeColumnId, setActiveColumnId] = useState(null);
   const [socket, setSocket] = useState(null);
+  const [selectedCard, setSelectedCard] = useState(null);
 
   // Fetch Board Data & Initialize Socket
   useEffect(() => {
@@ -51,43 +53,40 @@ export default function KanbanTest() {
     return () => s.disconnect();
   }, []);
 
-  // Real-Time Socket Board Room Sync
   useEffect(() => {
     if (!socket || !board?._id) return;
 
+    // join targeted board room
     socket.emit("join_board", board._id);
 
+    // Listen for real-time moves from other users
     socket.on("card_moved_sync", ({ cardId, sourceColumnId, destinationColumnId, newPosition }) => {
       setBoard((prevBoard) => {
         if (!prevBoard) return prevBoard;
 
-        const newColumns = prevBoard.columns.map((col) => {
-          let updatedCards = [...col.cards];
-
-          // Remove card from source column
-          if (col._id === sourceColumnId) {
-            updatedCards = updatedCards.filter((c) => c._id !== cardId);
-          }
-
-          return { ...col, cards: updatedCards };
-        });
-
-        // Find the target card object
         let movedCard = null;
-        prevBoard.columns.forEach((col) => {
-          const found = col.cards.find((c) => c._id === cardId);
-          if (found) movedCard = found;
+
+        // Extract target card from source column
+        const updatedColumns = prevBoard.columns.map((col) => {
+          const colCards = [...col.cards];
+          if (col._id === sourceColumnId) {
+            const cardIdx = colCards.findIndex((c) => c._id === cardId);
+            if (cardIdx !== -1) {
+              [movedCard] = colCards.splice(cardIdx, 1);
+            }
+          }
+          return { ...col, cards: colCards };
         });
 
-        // Insert card into destination column
+        // Insert card into destination column at target position
         if (movedCard) {
-          const destCol = newColumns.find((col) => col._id === destinationColumnId);
+          const destCol = updatedColumns.find((col) => col._id === destinationColumnId);
           if (destCol) {
             destCol.cards.splice(newPosition, 0, movedCard);
           }
         }
 
-        return { ...prevBoard, columns: newColumns };
+        return { ...prevBoard, columns: updatedColumns };
       });
     });
 
@@ -97,11 +96,12 @@ export default function KanbanTest() {
     };
   }, [socket, board?._id]);
 
-  // 3. Handle Drag-and-Drop Move
+  // Drag-and-Drop Move with Optimistic UI
   const handleOnDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
 
     if (!destination) return;
+
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
@@ -111,10 +111,11 @@ export default function KanbanTest() {
     const destColId = destination.droppableId;
     const newPos = destination.index;
 
-    // Optimistic Local UI State Update
+    const previousBoardState = { ...board };
+
+    // optimistic state update
     const updatedColumns = board.columns.map((col) => {
-      const colCopy = { ...col, cards: [...col.cards] };
-      return colCopy;
+      return { ...col, cards: [...col.cards] };
     });
 
     const sourceColumn = updatedColumns.find((c) => c._id === sourceColId);
@@ -125,7 +126,6 @@ export default function KanbanTest() {
 
     setBoard({ ...board, columns: updatedColumns });
 
-    // API & Socket Synchronization
     try {
       await axios.patch(
         `${import.meta.env.VITE_API_BASE_URL}/api/card/move`,
@@ -138,6 +138,7 @@ export default function KanbanTest() {
         { withCredentials: true }
       );
 
+      // Emit Socket event to sync other users connected to the same board room
       socket?.emit("card_moved", {
         boardId: board._id,
         cardId: draggableId,
@@ -146,7 +147,9 @@ export default function KanbanTest() {
         newPosition: newPos,
       });
     } catch (err) {
-      toast.error("Failed to sync card position");
+      // 4. Rollback to original state if API call fails
+      setBoard(previousBoardState);
+      toast.error("Network sync failed. Reverting card position.");
     }
   };
 
@@ -216,9 +219,8 @@ export default function KanbanTest() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`flex-1 flex flex-col gap-2 overflow-y-auto min-h-[100px] p-1 rounded-lg transition-colors ${
-                      snapshot.isDraggingOver ? "bg-brand/5 border border-dashed border-brand/30" : ""
-                    }`}
+                    className={`flex-1 flex flex-col gap-2 overflow-y-auto min-h-[100px] p-1 rounded-lg transition-colors ${snapshot.isDraggingOver ? "bg-brand/5 border border-dashed border-brand/30" : ""
+                      }`}
                   >
                     {column.cards.map((card, index) => (
                       <Draggable key={card._id} draggableId={card._id} index={index}>
@@ -227,11 +229,9 @@ export default function KanbanTest() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className={`p-3 rounded-lg border bg-main text-primary text-sm shadow-sm transition-all ${
-                              snapshot.isDragging
-                                ? "border-brand shadow-lg scale-105"
-                                : "border-divider hover:border-brand/40"
-                            }`}
+                            onClick={() => setSelectedCard(card)}
+                            className={`p-3 rounded-lg border bg-main text-primary text-sm shadow-sm transition-all cursor-pointer ${snapshot.isDragging ? "border-brand shadow-lg scale-105" : "border-divider hover:border-brand/40"
+                              }`}
                           >
                             <p className="font-medium">{card.title}</p>
                             {card.description && (
@@ -286,6 +286,52 @@ export default function KanbanTest() {
           ))}
         </div>
       </DragDropContext>
+
+      <CardDetailsModal
+        card={selectedCard}
+        isOpen={Boolean(selectedCard)}
+        onClose={() => setSelectedCard(null)}
+        onCardUpdated={(updatedCard) => {
+          setBoard((prev) => ({
+            ...prev,
+            columns: prev.columns.map((col) => ({
+              ...col,
+              cards: col.cards.map((c) => (c._id === updatedCard._id ? updatedCard : c)),
+            })),
+          }));
+        }}
+        onCardDeleted={(deletedCardId) => {
+          setBoard((prev) => ({
+            ...prev,
+            columns: prev.columns.map((col) => ({
+              ...col,
+              cards: col.cards.filter((c) => c._id !== deletedCardId),
+            })),
+          }));
+        }}
+      /><CardDetailsModal
+        card={selectedCard}
+        isOpen={Boolean(selectedCard)}
+        onClose={() => setSelectedCard(null)}
+        onCardUpdated={(updatedCard) => {
+          setBoard((prev) => ({
+            ...prev,
+            columns: prev.columns.map((col) => ({
+              ...col,
+              cards: col.cards.map((c) => (c._id === updatedCard._id ? updatedCard : c)),
+            })),
+          }));
+        }}
+        onCardDeleted={(deletedCardId) => {
+          setBoard((prev) => ({
+            ...prev,
+            columns: prev.columns.map((col) => ({
+              ...col,
+              cards: col.cards.filter((c) => c._id !== deletedCardId),
+            })),
+          }));
+        }}
+      />
     </div>
   );
 }

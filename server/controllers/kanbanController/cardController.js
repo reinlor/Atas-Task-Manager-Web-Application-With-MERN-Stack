@@ -114,3 +114,54 @@ exports.moveCard = async (req, res) => {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// Controller to update card title/description/dueDate
+exports.updateCard = async (req, res) => {
+    try {
+        const { cardId } = req.params;
+        const { title, description, dueDate, assignedTo } = req.body;
+
+        const card = await Card.findById(cardId);
+        if (!card) return res.status(404).json({ message: 'Card not found' });
+
+        if (title !== undefined) card.title = title.trim();
+        if (description !== undefined) card.description = description;
+        if (dueDate !== undefined) card.dueDate = dueDate;
+        if (assignedTo !== undefined) card.assignedTo = assignedTo;
+
+        await card.save();
+
+        await invalidateUserCaches(req.user.id);
+        await deleteKeys(`board:${card.boardId}`);
+
+        return res.status(200).json({ message: 'Card updated successfully', card });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Controller to delete a card and clean references from board
+exports.deleteCard = async (req, res) => {
+    try {
+        const { cardId } = req.params;
+
+        const card = await Card.findById(cardId);
+        if (!card) return res.status(404).json({ message: 'Card not found' });
+
+        await transactionRunService(async (session) => {
+            await Board.updateOne(
+                { _id: card.boardId, 'columns._id': card.columnId },
+                { $pull: { 'columns.$.cards': cardId } },
+                { session }
+            );
+            await Card.findByIdAndDelete(cardId, { session });
+        });
+
+        await invalidateUserCaches(req.user.id);
+        await deleteKeys(`board:${card.boardId}`);
+
+        return res.status(200).json({ message: 'Card deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
