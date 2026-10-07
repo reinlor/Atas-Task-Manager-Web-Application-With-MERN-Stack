@@ -30,6 +30,10 @@ const boardSchema = new mongoose.Schema(
       ref: 'Account',
       required: true,
     },
+    team: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'Team', 
+      default: null },
     columns: [columnSchema],
   },
   { timestamps: true }
