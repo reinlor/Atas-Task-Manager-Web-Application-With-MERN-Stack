@@ -220,7 +220,7 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
 
                 <div className="space-y-4">
                     <div>
-                        <label htmlFor="email" className="block text-xs font-medium tracking-wide text-secondary mb-1.5">Email</label>
+                        <label htmlFor="email" className="block text-xs font-medium tracking-wide text-secondary mb-1.5">Email sds</label>
                         <TextInput
                             type="email" id="email" name="email"
                             value={email}
