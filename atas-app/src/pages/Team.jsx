@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { TeamIcon, SearchIcon, XIcon, ChevronDownIcon, TrashIcon } from "../component/Icons";
+import { Users, Search, X, ChevronDown, Trash} from "lucide-react";
 import { useDebouncedValue } from "../hooks/UseDebouncerValue";
 import { useAuth } from "../context/AuthContext";
 import Modal from "../component/Modal";
@@ -33,7 +33,7 @@ function MemberRow({ user, role, isRowOwner, viewerIsOwner, pending, onRoleChang
                         <option value="Editor">Editor</option>
                         <option value="Viewer">Viewer</option>
                     </select>
-                    <ChevronDownIcon className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-accent-color" />
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-accent-color" />
                 </div>
             ) : (
                 <span className="text-[11px] text-secondary shrink-0">{role}</span>
@@ -46,7 +46,7 @@ function MemberRow({ user, role, isRowOwner, viewerIsOwner, pending, onRoleChang
                     aria-label={`Remove ${user.username}`}
                     className="text-accent-color hover:text-danger transition-colors cursor-pointer shrink-0"
                 >
-                    <XIcon className="w-4 h-4" />
+                    <X className="w-4 h-4" />
                 </button>
             )}
         </div>
@@ -90,7 +90,7 @@ function MemberSearch({ excludeIds, onPick }) {
     return (
         <div className="relative">
             <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-color" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-color" />
                 <input
                     type="text"
                     value={query}
@@ -177,7 +177,7 @@ function CreateTeamForm({ onCreated, onCancel }) {
                     aria-label="Cancel"
                     className="text-accent-color hover:text-primary transition-colors cursor-pointer shrink-0 px-1"
                 >
-                    <XIcon className="w-4 h-4" />
+                    <X className="w-4 h-4" />
                 </button>
             )}
         </form>
@@ -330,7 +330,7 @@ export default function Team() {
         return (
             <div className="flex flex-col items-center justify-center text-center py-24 max-w-sm mx-auto">
                 <div className="w-12 h-12 rounded-full bg-input border border-divider flex items-center justify-center mb-4">
-                    <TeamIcon className="w-5 h-5 text-accent-color" />
+                    <Users className="w-5 h-5 text-accent-color" />
                 </div>
                 <h2 className="text-primary font-medium">No teams yet</h2>
                 <p className="text-secondary text-sm mt-1 mb-5">
@@ -398,7 +398,7 @@ export default function Team() {
                                     aria-label="Delete team"
                                     className="text-accent-color hover:text-danger transition-colors cursor-pointer"
                                 >
-                                    <TrashIcon className="w-4 h-4" />
+                                    <Trash className="w-4 h-4" />
                                 </button>
                             )}
                         </div>

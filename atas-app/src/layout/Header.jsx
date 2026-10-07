@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import NotificationBell from "../component/NotificationBell";
 import { useAuth } from "../context/AuthContext";
-import { LogoutIcon } from "../component/Icons";
+import { LogOut } from "lucide-react"
 import axios from "axios";
 
 const PAGE_TITLES = [
@@ -69,7 +69,7 @@ function Header() {
                                 onClick={handleLogout}
                                 className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-secondary hover:bg-main hover:text-primary transition-colors cursor-pointer"
                             >
-                                <LogoutIcon className="w-4 h-4" />
+                                <LogOut className="w-4 h-4" />
                                 Log out
                             </button>
                         </div>

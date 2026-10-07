@@ -1,24 +1,24 @@
-import { HistoryIcon, TaskIcon, TeamIcon } from "../component/Icons";
+import { FileText, RotateCcwClock, Users } from "lucide-react"
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
 const TYPE_ICON = {
-    task_created: TaskIcon,
-    task_updated: TaskIcon,
-    task_completed: TaskIcon,
-    task_deleted: TaskIcon,
-    task_shared: TeamIcon,
-    task_unshared: TeamIcon,
-    role_changed: TeamIcon,
-    member_added: TeamIcon,
-    team_created: TeamIcon,
-    board_created: TaskIcon,
-    board_updated: TaskIcon,
-    board_column_added: TaskIcon,
-    board_column_renamed: TaskIcon,
-    board_card_added: TaskIcon,
-    board_card_moved: TaskIcon,
+    task_created: FileText,
+    task_updated: FileText,
+    task_completed: FileText,
+    task_deleted: FileText,
+    task_shared: Users,
+    task_unshared: Users,
+    role_changed: Users,
+    member_added: Users,
+    team_created: Users,
+    board_created: FileText,
+    board_updated: FileText,
+    board_column_added: FileText,
+    board_column_renamed: FileText,
+    board_card_added: FileText,
+    board_card_moved: FileText,
 };
 
 function formatDateLabel(dateStr) {
@@ -84,7 +84,7 @@ export default function Log() {
         return (
             <div className="flex flex-col items-center justify-center text-center py-24 max-w-sm mx-auto">
                 <div className="w-12 h-12 rounded-full bg-input border border-divider flex items-center justify-center mb-4">
-                    <HistoryIcon className="w-5 h-5 text-accent-color" />
+                    <RotateCcwClock className="w-5 h-5 text-accent-color" />
                 </div>
                 <h2 className="text-primary font-medium">No activity yet</h2>
                 <p className="text-secondary text-sm mt-1">
@@ -108,7 +108,7 @@ export default function Log() {
 
                         <div className="relative pl-5 border-l border-divider space-y-5 sm:pl-6">
                             {group.items.map((entry) => {
-                                const Icon = TYPE_ICON[entry.type] ?? HistoryIcon;
+                                const Icon = TYPE_ICON[entry.type] ?? RotateCcwClock;
                                 const isActor = entry.actorId === user?._id || entry.actorId?._id === user?._id;
                                 const actorName = entry.actorId?.username || "Someone";
                                 const text = isActor

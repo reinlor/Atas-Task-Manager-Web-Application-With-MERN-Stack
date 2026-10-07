@@ -1,13 +1,13 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { DashboardIcon, TaskIcon, ClockIcon, TeamIcon, LogoutIcon } from "../component/Icons";
+import { LayoutDashboard, Kanban, FileText, Clock, Users, LogOut } from "lucide-react"
 
 // Navigation Item
 const NAV_ITEMS = [
-    { label: "Dashboard", path: "/dashboard", icon: DashboardIcon },
-    { label: "Board", path: "/kanban", icon: TaskIcon },
-    { label: "Notes", path: "/task", icon: TaskIcon },
-    { label: "Log", path: "/log", icon: ClockIcon },
-    { label: "Team", path: "/team", icon: TeamIcon },
+    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { label: "Board", path: "/kanban", icon: Kanban },
+    { label: "Notes", path: "/task", icon: FileText },
+    { label: "Log", path: "/log", icon: Clock },
+    { label: "Team", path: "/team", icon: Users },
 ];
 
 function Navigation() {
@@ -30,11 +30,10 @@ function Navigation() {
                                 type="button"
                                 onClick={() => navigate(path)}
                                 aria-current={isActive ? "page" : undefined}
-                                className={`w-full h-full flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-lg text-[10px] transition-colors cursor-pointer lg:h-auto lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-2.5 lg:text-sm ${
-                                    isActive
+                                className={`w-full h-full flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-lg text-[10px] transition-colors cursor-pointer lg:h-auto lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-2.5 lg:text-sm ${isActive
                                         ? "bg-brand/10 text-brand font-medium"
                                         : "text-secondary hover:bg-input hover:text-primary"
-                                }`}
+                                    }`}
                             >
                                 <Icon className="w-4.5 h-4.5 shrink-0" />
                                 {label}
@@ -50,7 +49,7 @@ function Navigation() {
                     onClick={() => navigate("/")}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-secondary hover:bg-input hover:text-primary transition-colors cursor-pointer"
                 >
-                    <LogoutIcon className="w-4.5 h-4.5" />
+                    <LogOut className="w-4.5 h-4.5" />
                     Log out
                 </button>
             </div>

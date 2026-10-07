@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import TaskCard from "../../component/Taskcard"
-import { TaskIcon } from "../../component/Icons";
+import { SquareCheck } from "lucide-react"
 
 export default function TaskList() {
     const [tasks, setTasks] = useState([]);
@@ -25,7 +25,7 @@ export default function TaskList() {
                 );
                 setTasks(response.data.tasks ?? response.data);
             } catch (err) {
-                if(err.status !== 404) 
+                if (err.status !== 404)
                     toast.error(err.response?.data?.message || "Failed to load tasks.");
             } finally {
                 setIsLoading(false);
@@ -104,7 +104,7 @@ export default function TaskList() {
             ) : tasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center py-24 max-w-sm mx-auto">
                     <div className="w-12 h-12 rounded-full bg-input border border-divider flex items-center justify-center mb-4">
-                        <TaskIcon className="w-5 h-5 text-accent-color" />
+                        <SquareCheck className="w-5 h-5 text-accent-color" />
                     </div>
                     <h2 className="text-primary font-medium">No tasks yet</h2>
                     <p className="text-secondary text-sm mt-1 mb-5">

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { BellIcon, TaskIcon, TeamIcon } from "./Icons";
+import { Bell, SquareCheck, Users } from "lucide-react"
 import { io } from 'socket.io-client';
 import axios from 'axios'
 
-const TYPE_ICON = { share: TeamIcon, role: TeamIcon, invite: TeamIcon, update: TaskIcon };
+const TYPE_ICON = { share: Users, role: Users, invite: Users, update: SquareCheck };
 
 export default function NotificationBell({ currentUserId }) {
     const [open, setOpen] = useState(false);
@@ -82,7 +82,7 @@ export default function NotificationBell({ currentUserId }) {
                 aria-label="Notifications"
                 className="relative text-secondary hover:text-primary transition-colors cursor-pointer"
             >
-                <BellIcon className="w-5 h-5" />
+                <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-danger text-primary text-[10px] font-medium flex items-center justify-center">
                         {unreadCount}
@@ -114,7 +114,7 @@ export default function NotificationBell({ currentUserId }) {
                         <p className="text-secondary text-sm text-center py-6">You're all caught up.</p>
                     ) : (
                         notifications.map((n) => {
-                            const Icon = TYPE_ICON[n.type] ?? BellIcon;
+                            const Icon = TYPE_ICON[n.type] ?? Bell;
                             return (
                                 <button
                                     key={n._id}

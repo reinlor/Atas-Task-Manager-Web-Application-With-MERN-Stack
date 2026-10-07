@@ -13,8 +13,8 @@ import 'katex/dist/katex.min.css';
 
 import axios from "axios";
 import { io } from "socket.io-client";
-import { toast } from "react-toastify";
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, MoreIcon } from "../../component/Icons";
+import { toast } from "react-toastify"; 
+import { ChevronDown, ChevronLeft, ChevronRight, EllipsisVertical } from "lucide-react";
 import { useTaskEditor } from "../../context/TaskEditorContext";
 import Button from "../../component/Button";
 import Modal from "../../component/Modal";
@@ -426,7 +426,7 @@ export default function Tasks() {
                             aria-label="More actions"
                             className="w-9 h-9 rounded-lg border border-divider text-secondary hover:text-primary hover:bg-main transition-colors cursor-pointer flex items-center justify-center"
                         >
-                            <MoreIcon className="w-4 h-4" />
+                            <EllipsisVertical className="w-4 h-4" />
                         </button>
                     )}
 
@@ -500,7 +500,7 @@ export default function Tasks() {
                                 <option value="In Progress">In Progress</option>
                                 <option value="Complete">Complete</option>
                             </select>
-                            <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-color" />
+                            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-color" />
                         </div>
                     </div>
 
@@ -513,7 +513,7 @@ export default function Tasks() {
                                 aria-label="Show markdown editor"
                                 className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-divider text-secondary hover:text-primary hover:bg-input disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                             >
-                                <ChevronLeftIcon className="w-5 h-5" />
+                                <ChevronLeft className="w-5 h-5" />
                             </button>
                             <span className="text-[11px] uppercase tracking-widest text-accent-color">
                                 {mobileEditorPane === "markdown" ? "Markdown" : "Preview"}
@@ -525,7 +525,7 @@ export default function Tasks() {
                                 aria-label="Show markdown preview"
                                 className="w-9 h-9 inline-flex items-center justify-center rounded-lg border border-divider text-secondary hover:text-primary hover:bg-input disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                             >
-                                <ChevronRightIcon className="w-5 h-5" />
+                                <ChevronRight className="w-5 h-5" />
                             </button>
                         </div>
 

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { diffLines } from "diff";
-import { SparkleIcon, XIcon, SendIcon } from "./Icons";
+import { Sparkles, X, Send  } from "lucide-react"
 import { useTaskEditor } from "../context/TaskEditorContext";
 
 
@@ -188,7 +188,7 @@ export default function Aichat() {
         textArea.style.height = `${textArea.scrollHeight}px`;
 
         // Scrollbar shows after exceedin client height
-        if (textArea.scrollHeight -2 > textArea.clientHeight) {
+        if (textArea.scrollHeight - 2 > textArea.clientHeight) {
             textArea.style.overflowY = "auto";
         }
     };
@@ -290,7 +290,7 @@ export default function Aichat() {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-[#161616] shrink-0">
                     <div className="flex items-center gap-2">
                         <span className="w-7 h-7 rounded-full bg-brand/15 border border-brand/30 flex items-center justify-center">
-                            <SparkleIcon className="w-3.5 h-3.5 text-brand" />
+                            <Sparkles className="w-3.5 h-3.5 text-brand" />
                         </span>
                         <div>
                             <p className="text-sm font-medium text-primary leading-none">Task Assistant</p>
@@ -303,7 +303,7 @@ export default function Aichat() {
                         aria-label="Close assistant"
                         className="text-accent-color hover:text-primary transition-colors cursor-pointer"
                     >
-                        <XIcon className="w-4 h-4" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -337,7 +337,7 @@ export default function Aichat() {
                         aria-label="Send"
                         className="shrink-0 w-9 h-9 rounded-lg bg-brand text-main flex items-center justify-center hover:brightness-110 active:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                     >
-                        <SendIcon className="w-4 h-4" />
+                        <Send className="w-4 h-4" />
                     </button>
                 </form>
             </div>
@@ -347,10 +347,10 @@ export default function Aichat() {
                 onClick={() => setOpen((prev) => !prev)}
                 aria-label={open ? "Close task assistant" : "Open task assistant"}
                 className={`w-14 h-14 rounded-full bg-brand text-main shadow-lg shadow-black/40 flex items-center justify-center hover:brightness-110 active:brightness-95 transition cursor-pointer
-                        ${ !open ? 'opacity-30 transition-opacity duration-300 ease-in-out hover:opacity-100' : ''}
+                        ${!open ? 'opacity-30 transition-opacity duration-300 ease-in-out hover:opacity-100' : ''}
                     `}
             >
-                {open ? <XIcon className="w-5 h-5" /> : <SparkleIcon className="w-6 h-6" />}
+                {open ? <X className="w-5 h-5" /> : <Sparkles className="w-6 h-6" />}
             </button>
         </aside>
     );

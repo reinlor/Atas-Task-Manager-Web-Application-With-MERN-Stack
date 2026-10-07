@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { TaskIcon, HistoryIcon } from "../component/Icons";
+import { FileText, RotateCcwClock } from "lucide-react"
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -120,7 +120,7 @@ function Dashboard() {
                         })}
                         {!isLoading && recentTasks.length === 0 && (
                             <div className="flex flex-col items-center justify-center text-center py-10">
-                                <TaskIcon className="w-5 h-5 text-accent-color mb-2" />
+                                <FileText className="w-5 h-5 text-accent-color mb-2" />
                                 <p className="text-secondary text-sm">No tasks yet.</p>
                             </div>
                         )}
@@ -147,7 +147,7 @@ function Dashboard() {
                         ))}
                         {!isLoading && recentActivity.length === 0 && (
                             <div className="flex flex-col items-center justify-center text-center py-6">
-                                <HistoryIcon className="w-5 h-5 text-accent-color mb-2" />
+                                <RotateCcwClock className="w-5 h-5 text-accent-color mb-2" />
                                 <p className="text-secondary text-sm">Nothing yet.</p>
                             </div>
                         )}
