@@ -29,6 +29,7 @@ const { initSocket } = require('./config/socket');
 const io = initSocket(server);
 const PORT = process.env.PORT || 3000;
 
+// Routes
 const accountRoute = require('./routes/accountRoute');
 const taskRoute = require('./routes/taskRoute')
 const teamRoute = require('./routes/teamRoute')
@@ -36,8 +37,14 @@ const geminiRoute = require('./routes/geminiRoute')
 const notificationRoute = require('./routes/notificationRoute');
 const activityRoute = require('./routes/activityRoute');
 const dashboardRoute = require('./routes/dashboardRoute')
+const cardRoute = require('./routes/kanbanRoute/cardRoute');
+const boardRoute = require('./routes/kanbanRoute/boardRoute');
+
 const authToken = require('./config/authentication')
+
+// Socket
 const taskSocket = require('./sockets/taskSocket');
+const boardSocket = require('./sockets/boardSocket');
 
 app.use(
   helmet({
@@ -59,6 +66,7 @@ io.on('connection', (socket) => {
         if (userId && userId === socket.user.id) socket.join(userId);
     });
     taskSocket(io, socket);
+    boardSocket(io, socket);
 });
 
 // list of allowed uri
@@ -88,6 +96,8 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/account", accountRoute);
+app.use("/api/board", authToken, boardRoute);
+app.use("/api/card", authToken, cardRoute);
 app.use("/api/task", authToken, taskRoute);
 app.use("/api/team", authToken, teamRoute);
 app.use("/api/notification", authToken, notificationRoute);
