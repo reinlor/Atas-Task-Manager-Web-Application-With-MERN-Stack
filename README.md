@@ -10,6 +10,7 @@ Atas is a full-stack task-management web application built with React and Node.j
 - Markdown task editor with GitHub Flavored Markdown, syntax highlighting, and math rendering
 - Task statuses: Pending, In Progress, and Complete
 - Team-based task sharing with owner, editor, and viewer permissions
+- Team-shared Kanban boards with real-time card movement and custom columns
 - Real-time task collaboration through Socket.IO
 - Presence indicators showing users in a task room and who is editing
 - Debounced autosave while editing
@@ -96,6 +97,14 @@ The client logs in through the account API. The server creates a JWT and stores 
 ### Activity workflow
 
 Activity records are stored once in the `Activity` collection. The activity log reads the full user history, while the dashboard reads only a small recent slice. This avoids maintaining two separate activity histories that could become inconsistent.
+
+### Kanban board workflow
+
+Users can create and select multiple named boards. New boards start with no columns. Board owners and authorized team editors can create named columns and rename them; the board allows up to six columns. Board owners can share a board with a team they own; that team's members can then find the board in their board list. Team viewers have read-only access. Manage team membership and invitations from the Team page.
+
+The board view uses a horizontally scrollable, mobile-first column layout. While dragging, moving the pointer or touch point near either horizontal edge smoothly scrolls the board in that direction, making off-screen columns reachable on mobile. Auto-scroll continues only while the board can scroll in that direction and restarts when the pointer moves back to an edge. The board selector marks boards owned by someone else as shared. Board rendering is split into memoized card, column, and board-view components to keep interaction and layout logic focused. Card movement uses Socket.IO for live synchronization and authenticated HTTP requests for persistence. The board room shows the currently connected teammates. Column/card changes are recorded in each involved user's activity log.
+
+Card descriptions support sanitized Markdown, GitHub Flavored Markdown, and math rendering in board cards and card previews.
 
 ### Notifications and teams
 
@@ -189,6 +198,8 @@ The frontend runs at `http://localhost:5173` and the API runs at `http://localho
 | Area | Base path | Purpose |
 | --- | --- | --- |
 | Accounts | `/api/account` | Registration, login, logout, verification, and profile access |
+| Kanban boards | `/api/board` | Create, list, rename, share, and add columns to boards |
+| Kanban cards | `/api/card` | Create, move, update, and delete board cards |
 | Tasks | `/api/task` | Create, filter, read, update, and delete tasks |
 | Teams | `/api/team` | Create and manage teams and members |
 | Dashboard | `/api/dashboard` | Statistics, recent tasks, and recent activity summary |

@@ -29,7 +29,8 @@ exports.invalidateUserCaches = async (userId) => {
         exports.deleteKeys(
             `dashboard:${id}`,
             `activity:${id}`,
-            `notifications:${id}`
+            `notifications:${id}`,
+            `boards:${id}`
         )
     ]);
 };

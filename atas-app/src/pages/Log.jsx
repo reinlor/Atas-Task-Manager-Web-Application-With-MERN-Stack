@@ -13,6 +13,12 @@ const TYPE_ICON = {
     role_changed: TeamIcon,
     member_added: TeamIcon,
     team_created: TeamIcon,
+    board_created: TaskIcon,
+    board_updated: TaskIcon,
+    board_column_added: TaskIcon,
+    board_column_renamed: TaskIcon,
+    board_card_added: TaskIcon,
+    board_card_moved: TaskIcon,
 };
 
 function formatDateLabel(dateStr) {
@@ -82,7 +88,7 @@ export default function Log() {
                 </div>
                 <h2 className="text-primary font-medium">No activity yet</h2>
                 <p className="text-secondary text-sm mt-1">
-                    Changes across your tasks and teams will show up here.
+                    Changes across your tasks, boards, and teams will show up here.
                 </p>
             </div>
         );
@@ -91,7 +97,7 @@ export default function Log() {
     return (
         <div className="w-full max-w-2xl">
             <h1 className="text-xl font-semibold text-primary mb-1">Activity log</h1>
-            <p className="text-secondary text-sm mb-8">A running history of what's changed across your tasks and teams.</p>
+            <p className="text-secondary text-sm mb-8">A running history of what's changed across your tasks, boards, and teams.</p>
 
             <div className="space-y-8">
                 {groups.map((group) => (

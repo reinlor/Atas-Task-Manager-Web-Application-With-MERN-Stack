@@ -6,7 +6,8 @@ export default function Modal({
     content,
     display,
     onConfirm,
-    onCancel
+    onCancel,
+    confirmIsLoading = false,
 }) {
     const dialogRef = useRef(null);
 
@@ -22,9 +23,19 @@ export default function Modal({
             ref={dialogRef}
 
             onClick={(e) => {
-                if (e.target === dialogRef.current && onCancel) onCancel();
+                if (
+                    e.target === dialogRef.current &&
+                    onCancel &&
+                    !confirmIsLoading
+                ) {
+                    onCancel();
+                }
             }}
             onCancel={(e) => {
+                if (confirmIsLoading) {
+                    e.preventDefault();
+                    return;
+                }
                 if (onCancel) onCancel();
                 else e.preventDefault();
             }}
@@ -39,6 +50,7 @@ export default function Modal({
                     <button
                         type="button"
                         onClick={onCancel}
+                        disabled={confirmIsLoading}
                         aria-label="Close"
                         className="text-accent-color hover:text-primary transition-colors cursor-pointer -mt-1 -mr-1 text-xl leading-none"
                     >
@@ -54,12 +66,13 @@ export default function Modal({
                 {onCancel && (
                     <Button 
                         onClick={onCancel} 
+                        disabled={confirmIsLoading}
                         variant="secondary">
                         Cancel
                     </Button>
                 )}
                 {/* Confirm Button */}
-                <Button onClick={onConfirm}>
+                <Button onClick={onConfirm} isLoading={confirmIsLoading}>
                     Confirm
                 </Button>
             </div>

@@ -34,7 +34,14 @@ const boardSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'Team', 
       default: null },
-    columns: [columnSchema],
+    columns: {
+      type: [columnSchema],
+      default: [],
+      validate: {
+        validator: (columns) => columns.length <= 6,
+        message: 'A board cannot have more than 6 columns',
+      },
+    },
   },
   { timestamps: true }
 );

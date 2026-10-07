@@ -1,12 +1,11 @@
 const Board = require('../../models/kanbanModel/boardModel');
 const Card = require('../../models/kanbanModel/cardModel');
 const Team = require('../../models/teamModel');
-const Account = require('../../models/accountModel');
-const mongoose = require('mongoose');
 const { transactionRunService } = require('../../services/transactionRunService');
 const { createOrUpdateEmitDashboard } = require('../../services/dashboardService');
 const { createActivityForUsers } = require('../../services/activityService');
-const { getJson, setJson, deleteKeys, invalidateUserCaches } = require('../../services/cacheService');
+const { getJson, setJson } = require('../../services/cacheService');
+const { getBoardAccess, getBoardParticipantIds, invalidateBoardState } = require('../../services/kanbanAccessService');
 
 // Controller to get all boards accessible to the user
 exports.getBoards = async (req, res) => {
@@ -32,28 +31,26 @@ exports.getBoards = async (req, res) => {
     }
 };
 
-// Controller to create a new Kanban board with default columns
+// Controller to create a new empty Kanban board
 exports.createBoard = async (req, res) => {
     try {
         const { id: userId } = req.user;
         const { title, teamId } = req.body;
 
-        if (!title || !title.trim()) {
+        if (typeof title !== 'string' || !title.trim()) {
             return res.status(400).json({ message: 'Board title is required' });
         }
 
-        const defaultColumns = [
-            { title: 'To Do', position: 0, cards: [] },
-            { title: 'In Progress', position: 1, cards: [] },
-            { title: 'Done', position: 2, cards: [] }
-        ];
+        if (teamId && !(await Team.exists({ _id: teamId, owner: userId }))) {
+            return res.status(403).json({ message: 'Only a team owner can share a board with that team' });
+        }
 
         const newBoard = await transactionRunService(async (session) => {
             const created = await Board.create([{
                 title: title.trim(),
                 owner: userId,
                 team: teamId || null,
-                columns: defaultColumns
+                columns: []
             }], { session });
 
             await createOrUpdateEmitDashboard({
@@ -68,13 +65,13 @@ exports.createBoard = async (req, res) => {
         });
 
         await createActivityForUsers({
-            userIds: [userId],
+            userIds: await getBoardParticipantIds(newBoard),
             actorId: userId,
             type: 'board_created',
             text: `created board "${newBoard.title}"`
         });
 
-        await invalidateUserCaches(userId);
+        await invalidateBoardState(newBoard);
         return res.status(201).json(newBoard);
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
@@ -85,15 +82,132 @@ exports.createBoard = async (req, res) => {
 exports.getBoardById = async (req, res) => {
     try {
         const { boardId } = req.params;
+        const { id: userId } = req.user;
         const cacheKey = `board:${boardId}`;
+
+        const access = await getBoardAccess(boardId, userId);
+        if (!access.board) return res.status(404).json({ message: 'Board not found' });
+        if (!access.canView) {
+            return res.status(403).json({ message: 'You do not have access to this board' });
+        }
+
         const cached = await getJson(cacheKey);
         if (cached) return res.status(200).json(cached);
-
         const board = await Board.findById(boardId).populate('columns.cards');
-        if (!board) return res.status(404).json({ message: 'Board not found' });
-
         await setJson(cacheKey, board, 60);
         return res.status(200).json(board);
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.updateBoard = async (req, res) => {
+    try {
+        const { id: userId } = req.user;
+        const { boardId } = req.params;
+        const { title, teamId } = req.body;
+        const board = await Board.findOne({ _id: boardId, owner: userId });
+        if (!board) return res.status(404).json({ message: 'Board not found or unauthorized' });
+        const previousTeamId = board.team;
+
+        if (title !== undefined) {
+            if (typeof title !== 'string' || !title.trim()) {
+                return res.status(400).json({ message: 'Board title is required' });
+            }
+            board.title = title.trim();
+        }
+
+        let newTeamId = board.team;
+        if (teamId !== undefined) {
+            if (teamId && !(await Team.exists({ _id: teamId, owner: userId }))) {
+                return res.status(403).json({ message: 'Only a team owner can share a board with that team' });
+            }
+            board.team = teamId || null;
+            newTeamId = board.team;
+        }
+
+        await board.save();
+        await invalidateBoardState({ ...board.toObject(), team: previousTeamId }, newTeamId);
+        const oldBoardParticipants = await getBoardParticipantIds({
+            ...board.toObject(),
+            team: previousTeamId
+        });
+        const newBoardParticipants = await getBoardParticipantIds(board);
+        await createActivityForUsers({
+            userIds: [...new Set([...oldBoardParticipants, ...newBoardParticipants])],
+            actorId: userId,
+            type: 'board_updated',
+            text: `updated board "${board.title}"${teamId !== undefined ? ' sharing' : ''}`
+        });
+        return res.status(200).json({ message: 'Board updated successfully', board });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.addColumn = async (req, res) => {
+    try {
+        const { id: userId } = req.user;
+        const { boardId } = req.params;
+        const { title } = req.body;
+        if (typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ message: 'Column title is required' });
+        }
+
+        const access = await getBoardAccess(boardId, userId);
+        const { board } = access;
+        if (!board) return res.status(404).json({ message: 'Board not found' });
+        if (!access.canEdit) return res.status(403).json({ message: 'You do not have permission to edit this board' });
+        if (board.columns.length >= 6) {
+            return res.status(400).json({ message: 'A board cannot have more than 6 columns' });
+        }
+
+        board.columns.push({
+            title: title.trim(),
+            position: board.columns.length,
+            cards: []
+        });
+        await board.save();
+        await invalidateBoardState(board);
+        await createActivityForUsers({
+            userIds: await getBoardParticipantIds(board),
+            actorId: userId,
+            type: 'board_column_added',
+            text: `added column "${title.trim()}" to board "${board.title}"`
+        });
+        return res.status(201).json({ message: 'Column created successfully', column: board.columns.at(-1) });
+    } catch (error) {
+        return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.renameColumn = async (req, res) => {
+    try {
+        const { id: userId } = req.user;
+        const { boardId, columnId } = req.params;
+        const { title } = req.body;
+        if (typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ message: 'Column title is required' });
+        }
+
+        const access = await getBoardAccess(boardId, userId);
+        const { board } = access;
+        if (!board) return res.status(404).json({ message: 'Board not found' });
+        if (!access.canEdit) return res.status(403).json({ message: 'You do not have permission to edit this board' });
+
+        const column = board.columns.id(columnId);
+        if (!column) return res.status(404).json({ message: 'Column not found' });
+        const previousTitle = column.title;
+        column.title = title.trim();
+        await board.save();
+        await invalidateBoardState(board);
+        await createActivityForUsers({
+            userIds: await getBoardParticipantIds(board),
+            actorId: userId,
+            type: 'board_column_renamed',
+            text: `renamed column "${previousTitle}" to "${column.title}" on board "${board.title}"`
+        });
+        return res.status(200).json({ message: 'Column renamed successfully', column });
     } catch (error) {
         return res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -113,8 +227,7 @@ exports.deleteBoard = async (req, res) => {
             await Board.findByIdAndDelete(boardId, { session });
         });
 
-        await invalidateUserCaches(userId);
-        await deleteKeys(`board:${boardId}`);
+        await invalidateBoardState(board);
 
         return res.status(200).json({ message: 'Board and all associated cards deleted successfully' });
     } catch (error) {

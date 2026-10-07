@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Button from "./Button";
 import TextInput from "./TextInput";
 import Modal from "./Modal";
+import MarkdownContent from "./MarkdownContent";
 
-export default function CardDetailsModal({
+function CardDetailsModal({
   card,
   isOpen,
   onClose,
   onCardUpdated,
   onCardDeleted,
+  canEdit = true,
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -22,9 +24,9 @@ export default function CardDetailsModal({
     if (card) {
       setTitle(card.title || "");
       setDescription(card.description || "");
-      setActiveTab("edit");
+      setActiveTab(canEdit ? "edit" : "preview");
     }
-  }, [card]);
+  }, [card, canEdit]);
 
   if (!isOpen || !card) return null;
 
@@ -95,6 +97,7 @@ export default function CardDetailsModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Card title..."
+            disabled={!canEdit}
           />
         </div>
 
@@ -104,7 +107,7 @@ export default function CardDetailsModal({
               Description (Markdown)
             </label>
             <div className="flex gap-1 bg-main border border-divider p-1 rounded-lg">
-              <button
+              {canEdit && <button
                 type="button"
                 onClick={() => setActiveTab("edit")}
                 className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors cursor-pointer ${
@@ -114,7 +117,7 @@ export default function CardDetailsModal({
                 }`}
               >
                 Write
-              </button>
+              </button>}
               <button
                 type="button"
                 onClick={() => setActiveTab("preview")}
@@ -134,12 +137,15 @@ export default function CardDetailsModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add detailed notes, checklists, or links..."
+              disabled={!canEdit}
               className="w-full flex-1 min-h-[160px] bg-main border border-divider rounded-lg p-3 text-sm text-primary placeholder-accent-color/70 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 resize-none font-mono"
             />
           ) : (
-            <div className="w-full flex-1 min-h-[160px] bg-main border border-divider rounded-lg p-3 text-sm text-primary overflow-y-auto whitespace-pre-wrap font-mono">
+            <div className="w-full flex-1 min-h-[160px] bg-main border border-divider rounded-lg p-3 text-sm text-primary overflow-y-auto">
               {description ? (
-                description
+                <MarkdownContent className="break-words [&_p]:mb-3 [&_pre]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-[#161616] [&_pre]:p-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-brand [&_a]:underline [&_code]:rounded [&_code]:bg-[#161616] [&_code]:px-1 [&_code]:font-mono [&_table]:w-full [&_th]:border [&_th]:border-divider [&_th]:p-1 [&_td]:border [&_td]:border-divider [&_td]:p-1">
+                  {description}
+                </MarkdownContent>
               ) : (
                 <p className="text-secondary italic text-xs">Nothing to preview yet.</p>
               )}
@@ -148,19 +154,19 @@ export default function CardDetailsModal({
         </div>
 
         <div className="flex items-center justify-between pt-3 border-t border-divider">
-          <button
+          {canEdit && <button
             type="button"
             onClick={() => setShowConfirmDelete(true)}
             className="text-xs text-danger hover:brightness-110 font-medium cursor-pointer"
           >
             Delete Card
-          </button>
+          </button>}
 
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={onClose}>
-              Cancel
+              {canEdit ? "Cancel" : "Close"}
             </Button>
-            <Button onClick={handleSave}>Save Changes</Button>
+            {canEdit && <Button onClick={handleSave}>Save Changes</Button>}
           </div>
         </div>
       </dialog>
@@ -170,8 +176,11 @@ export default function CardDetailsModal({
         content={`Are you sure you want to delete "${card.title}"?`}
         display={showConfirmDelete}
         onConfirm={handleDelete}
-        onCancel={() => setShowConfirmDelete(false)}
+        onCancel={() => !isDeleting && setShowConfirmDelete(false)}
+        confirmIsLoading={isDeleting}
       />
     </>
   );
 }
+
+export default memo(CardDetailsModal);
