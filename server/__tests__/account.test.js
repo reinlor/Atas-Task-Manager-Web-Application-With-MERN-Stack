@@ -119,5 +119,29 @@ describe('Account API Endpoints (/api/account)', () => {
       expect(res.body.message).toContain('Invalid email or password');
     });
   })
+
+  // 403
+  it('should return 403 if account is not verified', async () => {
+      const mockUser = {
+        _id: 'mockUserId123',
+        username: 'eneil',
+        email: 'eneil@example.com',
+        isVerified: false,
+        matchPassword: jest.fn().mockResolvedValue(true)
+      };
+      Account.findOne.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .post('/api/account/login')
+        .send({
+          email: 'eneil@example.com',
+          password: 'password123'
+        });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.message).toContain('Email is not verified yet');
+    });
+
+
   // TODO: Do more testing
 });
