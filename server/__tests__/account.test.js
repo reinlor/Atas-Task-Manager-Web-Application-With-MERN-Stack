@@ -75,6 +75,7 @@ describe('Account API Endpoints (/api/account)', () => {
   });
 
   describe('POST /api/account/login', () => {
+    // Succesful Login
     it('should login successfully and set a cookie for valid credentials', async () => {
       const mockUser = {
         _id: 'mockUserId123',
@@ -98,6 +99,25 @@ describe('Account API Endpoints (/api/account)', () => {
       expect(res.headers['set-cookie']).toBeDefined();
       expect(Account.findOne).toHaveBeenCalledWith({ email: 'eneil@example.com' });
     })
+
+    // 401
+    it('should return 401 for invalid password', async () => {
+      const mockUser = {
+        email: 'eneil@example.com',
+        matchPassword: jest.fn().mockResolvedValue(false)
+      };
+      Account.findOne.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .post('/api/account/login')
+        .send({
+          email: 'eneil@example.com',
+          password: 'wrongpassword'
+        });
+
+      expect(res.statusCode).toBe(401);
+      expect(res.body.message).toContain('Invalid email or password');
+    });
   })
   // TODO: Do more testing
 });
