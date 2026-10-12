@@ -74,5 +74,30 @@ describe('Account API Endpoints (/api/account)', () => {
     });
   });
 
+  describe('POST /api/account/login', () => {
+    it('should login successfully and set a cookie for valid credentials', async () => {
+      const mockUser = {
+        _id: 'mockUserId123',
+        username: 'eneil',
+        email: 'eneil@example.com',
+        isVerified: true,
+        matchPassword: jest.fn().mockResolvedValue(true)
+      };
+      Account.findOne.mockResolvedValue(mockUser);
+
+      // Send Request
+      const res = await request(app)
+        .post('/api/account/login')
+        .send({
+          email: 'eneil@example.com',
+          password: 'password123'
+        });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveProperty('_id', 'mockUserId123');
+      expect(res.headers['set-cookie']).toBeDefined();
+      expect(Account.findOne).toHaveBeenCalledWith({ email: 'eneil@example.com' });
+    })
+  })
   // TODO: Do more testing
 });
