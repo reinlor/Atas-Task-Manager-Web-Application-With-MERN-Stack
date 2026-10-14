@@ -210,7 +210,9 @@ function LoginForm({ handleLogin, changeForm, formData, onChange, buttonState })
                 {/* Not visually presented but being read by screen reader 😏 */}
                 <legend className="sr-only">Sign in to your account</legend>
 
-                <GoogleLoginButton />
+                <div className="mx-auto w-full">
+                    <GoogleLoginButton />
+                </div>
 
                 <div className="flex items-center gap-3 my-6">
                     <div className="h-px flex-1 bg-divider" />

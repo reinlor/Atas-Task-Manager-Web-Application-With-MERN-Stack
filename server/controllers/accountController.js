@@ -4,7 +4,10 @@ const { OAuth2Client } = require('google-auth-library')
 const nodemailer = require('nodemailer')
 
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+const googleClient = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+);
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
@@ -127,17 +130,25 @@ exports.loginAccount = async (req, res) => {
 
 // Controlelr to Login user via Google Login
 exports.googleLogin = async (req, res) => {
-    const { idToken } = req.body;
+    const { code } = req.body;
     const isProduction = process.env.NODE_ENV === 'production';
 
-    if (!idToken)
-        return res.status(400).json({ message: "Google Token is Missing" })
+    if (!code)
+        return res.status(400).json({ message: "Google Auth Code is Missing" });
 
     try {
+        const { tokens } = await googleClient.getToken({
+            code,
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            redirect_uri: 'postmessage'
+        });
+
+        // Verify the ID token returned
         const ticket = await googleClient.verifyIdToken({
-            idToken: idToken,
+            idToken: tokens.id_token,
             audience: process.env.GOOGLE_CLIENT_ID
-        })
+        });
 
         const payload = ticket.getPayload();
         const { email, name, sub } = payload;
@@ -162,11 +173,8 @@ exports.googleLogin = async (req, res) => {
             secure: isProduction,
             sameSite: isProduction ? 'none' : 'lax',
             partitioned: true,
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 Days
+            maxAge: 30 * 24 * 60 * 60 * 1000
         });
-
-        // TODO: Delete before production
-        console.log("token: ", req.cookies.token)
 
         return res.status(200).json({
             _id: myGoogleAcc._id,
@@ -175,12 +183,13 @@ exports.googleLogin = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("Google Auth Error:", error);
         return res.status(400).json({
             message: "Google authentication failed",
             error: error.message
         });
     }
-}
+};
 
 // Controller to logout user cleanly
 exports.logoutAccount = async (req, res) => {
@@ -301,8 +310,8 @@ exports.getUser = async (req, res) => {
         const users = await account.find({
             $or: queryConditions
         })
-        .select('_id username email')
-        .limit(10);
+            .select('_id username email')
+            .limit(10);
 
         return res.status(200).json({
             count: users.length,
