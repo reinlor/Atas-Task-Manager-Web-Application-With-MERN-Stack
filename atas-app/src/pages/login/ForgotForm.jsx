@@ -9,7 +9,7 @@ export default function ForgotForm({ changeForm, buttonState, handleForgotPasswo
             <fieldset>
                 <legend className="sr-only">Reset your password</legend>
 
-                <div>
+                <div className="mb-3">
                     <label htmlFor="email" className="block text-xs font-medium tracking-wide text-secondary mb-1.5">Email</label>
                     <TextInput
                         type="email"
