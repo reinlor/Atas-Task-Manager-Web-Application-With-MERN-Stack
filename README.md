@@ -53,6 +53,12 @@ The dashboard uses reusable shadcn-style primitives from `atas-app/src/component
 
 When changing dashboard data presentation, keep the existing `/api/dashboard/get` response fields and task/log routes intact. Loading, empty, and request-error states are handled separately so the page remains understandable before and after data is available.
 
+### Kanban board UI
+
+The Kanban page uses the shared shadcn/ui `Card`, `Badge`, `Button`, `Input`, and `Skeleton` components for board selection, sharing and rename forms, board columns, and draggable cards. The horizontal board remains usable on narrow screens, while board loading, empty columns, and online collaborators have distinct visual states. Existing board permissions, API endpoints, socket presence and move synchronization, and drag-and-drop behavior remain unchanged.
+
+When updating the board, keep owners' team-sharing controls separate from editor capabilities. Only board owners can rename or share boards; team editors can edit cards and columns according to the existing permission checks.
+
 ### Backend
 
 - Node.js

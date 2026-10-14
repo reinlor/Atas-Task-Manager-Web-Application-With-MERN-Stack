@@ -1,7 +1,9 @@
 import { memo, useEffect, useState } from "react";
 import { Droppable } from "@hello-pangea/dnd";
-import Button from "../Button";
-import TextInput from "../TextInput";
+import { Check, Pencil, Plus, X } from "lucide-react";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import KanbanCard from "./KanbanCard";
 
 function KanbanColumn({
@@ -37,53 +39,66 @@ function KanbanColumn({
   };
 
   return (
-    <section className="flex max-h-full w-[min(84vw,18rem)] shrink-0 flex-col rounded-xl border border-divider bg-input p-3 sm:w-72">
-      <div className="mb-3 flex items-center justify-between gap-2 px-1">
+    <section className="flex max-h-full w-[min(84vw,19rem)] shrink-0 flex-col rounded-xl border border-border bg-card p-3 shadow-sm sm:w-80 sm:p-4">
+      <div className="mb-3 flex min-h-8 items-center justify-between gap-2">
         {isRenaming ? (
           <form onSubmit={submitRename} className="flex min-w-0 flex-1 gap-1">
-            <TextInput
+            <Input
               value={columnTitle}
               onChange={(event) => setColumnTitle(event.target.value)}
               maxLength={40}
               autoFocus
+              aria-label="Column name"
             />
-            <Button type="submit" disabled={!columnTitle.trim()}>
-              Save
-            </Button>
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setColumnTitle(column.title);
                 setIsRenaming(false);
               }}
-              className="cursor-pointer text-xs text-secondary hover:text-primary"
+              variant="ghost"
+              size="icon"
+              aria-label="Cancel renaming column"
             >
-              Cancel
-            </button>
+              <X aria-hidden="true" />
+            </Button>
+            <Button
+              type="submit"
+              disabled={!columnTitle.trim()}
+              variant="ghost"
+              size="icon"
+              aria-label="Save column name"
+              className="text-brand"
+            >
+              <Check aria-hidden="true" />
+            </Button>
           </form>
         ) : (
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <h3 className="min-w-0 truncate text-sm font-semibold text-primary">
+            <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-brand" />
+            <h3 className="min-w-0 truncate text-sm font-semibold text-foreground">
               {column.title}
             </h3>
             {canEdit && (
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setColumnTitle(column.title);
                   setIsRenaming(true);
                 }}
                 aria-label={`Rename ${column.title} column`}
-                className="shrink-0 cursor-pointer text-[11px] text-secondary hover:text-brand"
+                variant="ghost"
+                size="icon-xs"
+                className="shrink-0 text-muted-foreground hover:text-brand"
               >
-                Rename
-              </button>
+                <Pencil aria-hidden="true" />
+              </Button>
             )}
           </div>
         )}
-        <span className="shrink-0 rounded-full border border-divider bg-main px-2 py-0.5 text-xs text-secondary">
+        <Badge variant="secondary" className="shrink-0">
           {column.cards.length}
-        </span>
+        </Badge>
       </div>
 
       <Droppable droppableId={column._id}>
@@ -91,9 +106,9 @@ function KanbanColumn({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto rounded-lg p-1 transition-colors ${
+            className={`scrollbar-thin scrollbar-thumb-brand flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto rounded-lg p-1 transition-colors ${
               snapshot.isDraggingOver
-                ? "border border-dashed border-brand/30 bg-brand/5"
+                ? "border border-dashed border-brand/50 bg-brand/5"
                 : ""
             }`}
           >
@@ -107,11 +122,16 @@ function KanbanColumn({
               />
             ))}
             {provided.placeholder}
+            {column.cards.length === 0 && !snapshot.isDraggingOver && (
+              <div className="flex min-h-20 items-center justify-center rounded-lg border border-dashed border-border/80 px-3 text-center text-xs text-muted-foreground">
+                Drop a card here or add one below.
+              </div>
+            )}
           </div>
         )}
       </Droppable>
 
-      <div className="mt-3 border-t border-divider pt-2">
+      <div className="mt-3 border-t border-border pt-3">
         {!canEdit ? null : isAddingCard ? (
           <form
             className="flex flex-col gap-2"
@@ -120,36 +140,43 @@ function KanbanColumn({
               submitCard();
             }}
           >
-            <TextInput
+            <Input
               placeholder="Enter card title..."
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               autoFocus
+              aria-label="New card title"
             />
             <div className="flex items-center gap-2">
-              <Button disabled={!title.trim()} type="submit">
+              <Button
+                disabled={!title.trim()}
+                type="submit"
+                className="!bg-brand !text-main hover:!bg-brand/90"
+              >
                 Add
               </Button>
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setIsAddingCard(false);
                   setTitle("");
                 }}
-                className="cursor-pointer text-xs text-secondary transition-colors hover:text-primary"
+                variant="ghost"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
-          <button
+          <Button
             type="button"
             onClick={() => setIsAddingCard(true)}
-            className="w-full cursor-pointer p-1 text-left text-xs font-medium text-secondary transition-colors hover:text-brand"
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground hover:text-brand"
           >
-            + Add a card
-          </button>
+            <Plus aria-hidden="true" />
+            Add a card
+          </Button>
         )}
       </div>
     </section>
