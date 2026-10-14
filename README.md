@@ -47,6 +47,12 @@ When adding or updating UI:
 - Use `bg-brand text-main` for primary actions. `primary` remains mapped to the app's existing light text color for backward compatibility, rather than the brand color.
 - Update the shared theme tokens in `src/index.css` instead of introducing one-off colors or replacing them with shadcn's default light palette.
 
+### Dashboard UI
+
+The dashboard uses reusable shadcn-style primitives from `atas-app/src/components/ui`: `Card` for overview and activity surfaces, `Badge` for task status, and `Skeleton` for loading placeholders. Its summary cards, task list, and activity feed retain the app's dark/amber theme through the semantic tokens documented above. The layout adapts from a two-column mobile summary to four summary cards and a split task/activity view on wider screens.
+
+When changing dashboard data presentation, keep the existing `/api/dashboard/get` response fields and task/log routes intact. Loading, empty, and request-error states are handled separately so the page remains understandable before and after data is available.
+
 ### Backend
 
 - Node.js
