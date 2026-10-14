@@ -13,9 +13,10 @@ import Team from './pages/Team';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPass from './pages/ForgotPass';
 import Aichat from './component/AIchat';
-
-// Test Page for Kanban TODO:Remove/delete after test
 import Kanban from './pages/Kanban';
+
+// TODO: Remove after testing shadcn/ui
+import Test from './TestComponent';
 
 // Layout Imports
 import Layout from './layout/Layout';
@@ -59,6 +60,9 @@ function App() {
             <Route path='/team' element={<Team />} />
             <Route path='/kanban' element={<Kanban />} />
           </Route>
+
+          {/* TODO: Remove after testing */}
+          <Route path='/test' element={<Test/>}/>
         </Routes>
 
         {location.pathname.includes('/task') || location.pathname.includes('/kanban-test') ? <Aichat /> : null}

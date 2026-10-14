@@ -36,6 +36,17 @@ Atas is a full-stack task-management web application built with React and Node.j
 - Rehype Highlight, Rehype KaTeX, and Rehype Sanitize
 - React Toastify
 
+## Frontend visual theme
+
+The frontend uses Atas's dark theme: a `#121212` page background, `#1F1F1F` surfaces, light-gray text, muted-gray secondary text, and amber `#E8A33D` for emphasis and primary actions. The theme is defined in [`atas-app/src/index.css`](./atas-app/src/index.css) and applied globally to the page and shadcn/ui semantic tokens. The document keeps the `dark` class on its root element so shadcn's dark-state utilities stay enabled.
+
+When adding or updating UI:
+
+- Reuse `bg-main`, `bg-input`, `text-primary`, `text-secondary`, `text-brand`, `border-divider`, and `text-danger` for existing Atas UI.
+- Use the shared shadcn tokens (`bg-background`, `bg-card`, `text-foreground`, `border-border`, and related utilities) for shadcn components; their values are mapped to the same dark palette.
+- Use `bg-brand text-main` for primary actions. `primary` remains mapped to the app's existing light text color for backward compatibility, rather than the brand color.
+- Update the shared theme tokens in `src/index.css` instead of introducing one-off colors or replacing them with shadcn's default light palette.
+
 ### Backend
 
 - Node.js
